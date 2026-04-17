@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DapurKita — Masak Sehat dari Bahan yang Ada</title>
+  <meta name="description" content="Rekomendasi resep masakan berdasarkan bahan yang kamu punya dengan AI.">
+  <meta name="theme-color" content="#7DD3C0">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍳</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&family=Fraunces:wght@500;600;700&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <style>
+    :root {
+      --mint: #7DD3C0; --mint-light: #B8E8DD; --mint-pale: #E5F6F2;
+      --peach: #FFB5A7; --peach-light: #FFD6CF; --peach-pale: #FFF0ED;
+      --lavender: #C7B8EA; --lavender-light: #E4DCFA; --lavender-pale: #F5F2FF;
+      --yellow: #FFD93D; --yellow-light: #FFF3B0;
+      --cream: #FFF9F0; --cream-dark: #F5EDE0;
+      --text-primary: #2D3436; --text-secondary: #636E72; --text-muted: #A0A8AB;
+      --white: #FFFFFF;
+      --shadow-soft: 0 4px 20px rgba(125, 211, 192, 0.15);
+      --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.06);
+      --radius-sm: 12px; --radius-md: 16px; --radius-lg: 24px; --radius-full: 50px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Nunito', sans-serif; background: linear-gradient(180deg, var(--mint-pale) 0%, var(--cream) 100%); min-height: 100vh; color: var(--text-primary); line-height: 1.6; }
+    .loading-screen { position: fixed; inset: 0; background: linear-gradient(180deg, var(--mint-pale) 0%, var(--cream) 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; }
+    .loading-screen.hidden { display: none; }
+    .loading-logo { font-family: 'Fraunces', serif; font-size: 2rem; font-weight: 700; margin-bottom: 1rem; }
+    .loading-logo span { color: var(--mint); }
+    .loading-spinner { width: 40px; height: 40px; border: 4px solid var(--mint-light); border-top-color: var(--mint); border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .login-screen { min-height: 100vh; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; text-align: center; }
+    .login-screen.active { display: flex; }
+    .login-illustration { width: 180px; height: 180px; margin-bottom: 1.5rem; animation: float 3s ease-in-out infinite; }
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    .login-title { font-family: 'Fraunces', serif; font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .login-title span { color: var(--mint); }
+    .login-subtitle { font-size: 1.1rem; color: var(--text-secondary); margin-bottom: 2rem; max-width: 300px; }
+    .google-btn { display: flex; align-items: center; gap: 12px; padding: 14px 28px; background: var(--white); border: 2px solid var(--cream-dark); border-radius: var(--radius-full); font-size: 1rem; font-weight: 600; color: var(--text-primary); cursor: pointer; transition: all 0.3s ease; box-shadow: var(--shadow-card); font-family: 'Nunito', sans-serif; }
+    .google-btn:hover { border-color: var(--mint); transform: translateY(-2px); box-shadow: var(--shadow-soft); }
+    .google-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .google-btn svg { width: 24px; height: 24px; }
+    .login-error { margin-top: 1rem; padding: 12px 20px; background: var(--peach-pale); border-radius: var(--radius-md); color: #D4726A; font-size: 0.9rem; display: none; max-width: 350px; }
+    .login-error.show { display: block; }
+    .app-container { display: none; max-width: 480px; margin: 0 auto; padding: 0 1rem 100px; min-height: 100vh; }
+    .app-container.active { display: block; }
+    .app-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 0; position: sticky; top: 0; background: linear-gradient(180deg, var(--mint-pale) 0%, rgba(229, 246, 242, 0.95) 100%); backdrop-filter: blur(10px); z-index: 100; }
+    .app-logo { font-family: 'Fraunces', serif; font-size: 1.4rem; font-weight: 700; }
+    .app-logo span { color: var(--mint); }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    .level-badge { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: linear-gradient(135deg, var(--yellow) 0%, #FFB347 100%); border-radius: var(--radius-full); font-size: 0.8rem; font-weight: 700; color: #5D4E37; cursor: pointer; }
+    .level-badge:hover { transform: scale(1.05); }
+    .user-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--lavender-light); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.9rem; color: #7C6BA0; cursor: pointer; overflow: hidden; border: 2px solid var(--white); box-shadow: var(--shadow-card); }
+    .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .greeting-section { margin-bottom: 1.25rem; }
+    .greeting-text { font-size: 1rem; color: var(--text-secondary); }
+    .greeting-name { font-family: 'Fraunces', serif; font-size: 1.5rem; font-weight: 600; }
+    .tab-nav { display: flex; gap: 4px; margin-bottom: 1.25rem; background: var(--white); padding: 5px; border-radius: var(--radius-full); box-shadow: var(--shadow-card); overflow-x: auto; }
+    .tab-btn { flex: 1; min-width: fit-content; padding: 10px 14px; border: none; background: transparent; font-family: 'Nunito', sans-serif; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); cursor: pointer; border-radius: var(--radius-full); transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; }
+    .tab-btn.active { background: var(--mint); color: var(--white); }
+    .tab-btn:not(.active):hover { color: var(--text-primary); background: var(--mint-pale); }
+    .section { display: none; }
+    .section.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .section-title { font-family: 'Fraunces', serif; font-size: 1.2rem; font-weight: 600; margin-bottom: 1rem; }
+    .input-card { background: var(--white); border-radius: var(--radius-lg); padding: 1.25rem; box-shadow: var(--shadow-card); margin-bottom: 1.25rem; }
+    .input-group { display: flex; gap: 8px; }
+    .input-field { flex: 1; padding: 12px 16px; border: 2px solid var(--cream-dark); border-radius: var(--radius-md); font-size: 1rem; font-family: 'Nunito', sans-serif; transition: all 0.3s ease; background: var(--cream); }
+    .input-field:focus { outline: none; border-color: var(--mint); background: var(--white); }
+    .btn-add { padding: 12px 20px; background: linear-gradient(135deg, var(--mint) 0%, #5FBFAB 100%); color: var(--white); border: none; border-radius: var(--radius-md); font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; font-family: 'Nunito', sans-serif; }
+    .btn-add:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(125, 211, 192, 0.4); }
+    .quick-add-label { font-size: 0.8rem; color: var(--text-muted); margin: 0.75rem 0 0.5rem; font-weight: 500; }
+    .quick-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .quick-chip { padding: 6px 12px; background: var(--peach-pale); border: none; border-radius: var(--radius-full); font-size: 0.8rem; color: #D4726A; cursor: pointer; transition: all 0.2s ease; font-family: 'Nunito', sans-serif; font-weight: 500; }
+    .quick-chip:hover { background: var(--peach-light); transform: scale(1.05); }
+    .ingredients-section { margin-bottom: 1.25rem; }
+    .ingredients-list { display: flex; flex-wrap: wrap; gap: 8px; min-height: 40px; }
+    .ingredient-tag { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 500; animation: popIn 0.3s ease; }
+    @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .ingredient-tag.fresh { background: var(--mint-light); color: #2D8F7B; }
+    .ingredient-tag.pantry { background: var(--lavender-light); color: #7C6BA0; }
+    .tag-remove { width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.15); border-radius: 50%; cursor: pointer; font-size: 11px; transition: all 0.2s ease; font-weight: 700; }
+    .tag-remove:hover { background: rgba(0, 0, 0, 0.3); transform: scale(1.1); }
+    .btn-find { width: 100%; padding: 16px; background: linear-gradient(135deg, var(--peach) 0%, #FF9B8A 100%); color: var(--white); border: none; border-radius: var(--radius-lg); font-size: 1.05rem; font-weight: 700; cursor: pointer; transition: all 0.3s ease; font-family: 'Nunito', sans-serif; box-shadow: 0 4px 15px rgba(255, 181, 167, 0.4); margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-find:hover { transform: translateY(-3px); box-shadow: 0 6px 25px rgba(255, 181, 167, 0.5); }
+    .btn-find.loading { pointer-events: none; opacity: 0.8; }
+    .btn-find .spinner { width: 20px; height: 20px; border: 3px solid rgba(255, 255, 255, 0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    .filters-scroll { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 1rem; }
+    .filters-scroll::-webkit-scrollbar { display: none; }
+    .filter-chip { padding: 8px 14px; background: var(--white); border: 2px solid var(--cream-dark); border-radius: var(--radius-full); font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); cursor: pointer; white-space: nowrap; transition: all 0.2s ease; font-family: 'Nunito', sans-serif; }
+    .filter-chip.active { background: var(--lavender-pale); border-color: var(--lavender); color: #7C6BA0; }
+    .recipe-grid { display: flex; flex-direction: column; gap: 12px; }
+    .recipe-card { background: var(--white); border-radius: var(--radius-lg); padding: 1rem; box-shadow: var(--shadow-card); cursor: pointer; transition: all 0.3s ease; border: 2px solid transparent; }
+    .recipe-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-soft); border-color: var(--mint-light); }
+    .recipe-card.ai-recipe { border-left: 4px solid var(--mint); }
+    .recipe-card.user-recipe { border-left: 4px solid var(--lavender); }
+    .recipe-source { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: var(--radius-full); font-size: 0.65rem; font-weight: 700; margin-bottom: 6px; }
+    .recipe-source.ai { background: var(--mint-pale); color: #2D8F7B; }
+    .recipe-source.user { background: var(--lavender-pale); color: #7C6BA0; }
+    .recipe-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+    .recipe-name { font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 600; }
+    .recipe-origin { padding: 3px 10px; background: var(--cream); border-radius: var(--radius-full); font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); }
+    .recipe-meta { display: flex; gap: 12px; margin-bottom: 10px; font-size: 0.8rem; color: var(--text-muted); }
+    .recipe-meta span { display: flex; align-items: center; gap: 3px; }
+    .recipe-author { font-size: 0.75rem; color: var(--lavender); font-weight: 600; margin-bottom: 8px; }
+    .match-indicator { display: flex; align-items: center; gap: 8px; }
+    .match-bar { flex: 1; height: 5px; background: var(--cream-dark); border-radius: 3px; overflow: hidden; }
+    .match-fill { height: 100%; border-radius: 3px; }
+    .match-fill.high { background: linear-gradient(90deg, var(--mint) 0%, #5FBFAB 100%); }
+    .match-fill.medium { background: linear-gradient(90deg, #FFD93D 0%, #FFB347 100%); }
+    .match-text { font-size: 0.8rem; font-weight: 600; color: var(--mint); min-width: 45px; }
+    .recipe-missing { font-size: 0.75rem; color: var(--peach); margin-top: 6px; font-weight: 500; }
+    .empty-state { text-align: center; padding: 2.5rem 1rem; }
+    .empty-state-icon { font-size: 3.5rem; margin-bottom: 0.75rem; opacity: 0.6; }
+    .empty-state-title { font-family: 'Fraunces', serif; font-size: 1.15rem; font-weight: 600; margin-bottom: 0.4rem; }
+    .empty-state-text { color: var(--text-muted); font-size: 0.85rem; }
+    .pantry-category { margin-bottom: 1.25rem; }
+    .pantry-category-title { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .pantry-items { display: flex; flex-wrap: wrap; gap: 6px; }
+    .pantry-item { padding: 8px 14px; background: var(--white); border: 2px solid var(--cream-dark); border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 500; color: var(--text-secondary); cursor: pointer; transition: all 0.2s ease; font-family: 'Nunito', sans-serif; }
+    .pantry-item.selected { background: var(--lavender-pale); border-color: var(--lavender); color: #7C6BA0; }
+    .add-recipe-card { background: var(--white); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--shadow-card); margin-bottom: 1.5rem; }
+    .form-group { margin-bottom: 1rem; }
+    .form-label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
+    .form-input, .form-textarea, .form-select { width: 100%; padding: 12px 14px; border: 2px solid var(--cream-dark); border-radius: var(--radius-md); font-size: 0.95rem; font-family: 'Nunito', sans-serif; background: var(--cream); transition: all 0.3s ease; }
+    .form-input:focus, .form-textarea:focus, .form-select:focus { outline: none; border-color: var(--mint); background: var(--white); }
+    .form-textarea { min-height: 100px; resize: vertical; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+    .btn-submit { width: 100%; padding: 14px; background: linear-gradient(135deg, var(--mint) 0%, #5FBFAB 100%); color: var(--white); border: none; border-radius: var(--radius-lg); font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.3s ease; font-family: 'Nunito', sans-serif; }
+    .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(125, 211, 192, 0.4); }
+    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .xp-reward-banner { background: linear-gradient(135deg, var(--yellow) 0%, #FFB347 100%); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 12px; }
+    .xp-icon { font-size: 2rem; }
+    .xp-info h4 { font-weight: 700; color: #5D4E37; margin-bottom: 2px; }
+    .xp-info p { font-size: 0.8rem; color: #7D6E57; }
+    .leaderboard-card { background: var(--white); border-radius: var(--radius-lg); padding: 1rem; box-shadow: var(--shadow-card); margin-bottom: 1rem; }
+    .leaderboard-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--cream-dark); }
+    .leaderboard-item:last-child { border-bottom: none; }
+    .leaderboard-rank { width: 28px; height: 28px; background: var(--cream); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; }
+    .leaderboard-rank.gold { background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: white; }
+    .leaderboard-rank.silver { background: linear-gradient(135deg, #C0C0C0 0%, #A8A8A8 100%); color: white; }
+    .leaderboard-rank.bronze { background: linear-gradient(135deg, #CD7F32 0%, #A0522D 100%); color: white; }
+    .leaderboard-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--lavender-light); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem; color: #7C6BA0; overflow: hidden; }
+    .leaderboard-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .leaderboard-info { flex: 1; }
+    .leaderboard-name { font-weight: 600; font-size: 0.9rem; }
+    .leaderboard-stats { font-size: 0.75rem; color: var(--text-muted); }
+    .leaderboard-xp { font-weight: 700; color: #FFB347; font-size: 0.9rem; }
+    .profile-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 1.5rem; }
+    .stat-card { background: var(--white); border-radius: var(--radius-md); padding: 1rem; text-align: center; box-shadow: var(--shadow-card); }
+    .stat-value { font-family: 'Fraunces', serif; font-size: 1.5rem; font-weight: 700; color: var(--mint); }
+    .stat-label { font-size: 0.75rem; color: var(--text-muted); }
+    .level-card { background: linear-gradient(135deg, var(--lavender-pale) 0%, var(--mint-pale) 100%); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1.5rem; }
+    .level-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .level-title { font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 600; }
+    .level-number { font-size: 0.9rem; font-weight: 700; color: var(--lavender); }
+    .level-progress { height: 10px; background: var(--white); border-radius: 5px; overflow: hidden; margin-bottom: 8px; }
+    .level-fill { height: 100%; background: linear-gradient(90deg, var(--lavender) 0%, var(--mint) 100%); border-radius: 5px; transition: width 0.5s ease; }
+    .level-xp { font-size: 0.8rem; color: var(--text-secondary); text-align: right; }
+    .badges-section { margin-bottom: 1.5rem; }
+    .badges-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+    .badge-item { width: 60px; height: 60px; background: var(--white); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; box-shadow: var(--shadow-card); position: relative; }
+    .badge-item.locked { opacity: 0.3; filter: grayscale(1); }
+    .badge-item .badge-tooltip { position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%); background: var(--text-primary); color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.65rem; white-space: nowrap; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+    .badge-item:hover .badge-tooltip { opacity: 1; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); display: none; align-items: flex-end; justify-content: center; z-index: 1000; padding: 1rem; }
+    .modal-overlay.active { display: flex; animation: fadeIn 0.3s ease; }
+    .modal-content { background: var(--white); border-radius: var(--radius-lg) var(--radius-lg) 0 0; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; animation: slideUp 0.3s ease; }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .modal-header { padding: 1.25rem; border-bottom: 1px solid var(--cream-dark); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: var(--white); z-index: 10; }
+    .modal-title { font-family: 'Fraunces', serif; font-size: 1.3rem; font-weight: 600; }
+    .modal-close { width: 32px; height: 32px; border: none; background: var(--cream); border-radius: 50%; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .modal-body { padding: 1.25rem; }
+    .recipe-section { margin-bottom: 1.25rem; }
+    .recipe-section-title { font-weight: 700; font-size: 0.95rem; margin-bottom: 0.6rem; display: flex; align-items: center; gap: 6px; }
+    .recipe-info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .info-item { background: var(--cream); padding: 10px; border-radius: var(--radius-md); text-align: center; }
+    .info-icon { display: block; font-size: 1.3rem; margin-bottom: 2px; }
+    .info-label { display: block; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; }
+    .info-value { display: block; font-weight: 600; font-size: 0.85rem; margin-top: 2px; }
+    .recipe-ingredients-list { list-style: none; }
+    .recipe-ingredients-list li { padding: 8px 0; border-bottom: 1px solid var(--cream-dark); display: flex; align-items: center; gap: 10px; }
+    .recipe-ingredients-list li:last-child { border-bottom: none; }
+    .ingredient-check { width: 20px; height: 20px; border-radius: 50%; background: var(--mint-light); display: flex; align-items: center; justify-content: center; font-size: 11px; color: #2D8F7B; flex-shrink: 0; }
+    .ingredient-check.missing { background: var(--peach-pale); color: #D4726A; }
+    .ingredient-check.special { background: var(--yellow-light); color: #B8860B; }
+    .ingredient-amount { font-weight: 700; color: var(--mint); font-size: 0.9rem; min-width: 90px; }
+    .ingredient-name { flex: 1; }
+    .ingredient-note { font-size: 0.75rem; color: var(--text-muted); font-style: italic; }
+    .special-badge { display: inline-block; padding: 2px 6px; background: var(--yellow-light); color: #B8860B; font-size: 0.65rem; font-weight: 700; border-radius: 4px; margin-left: 6px; }
+    .recipe-section-group { margin-bottom: 1.25rem; background: var(--cream); border-radius: var(--radius-md); padding: 1rem; }
+    .section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 2px solid var(--mint-light); }
+    .section-letter { width: 26px; height: 26px; background: linear-gradient(135deg, var(--mint) 0%, #5FBFAB 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700; color: var(--white); }
+    .section-title-text { font-family: 'Fraunces', serif; font-size: 1rem; font-weight: 600; }
+    .recipe-steps-list { list-style: none; }
+    .recipe-steps-list li { padding: 10px 0; border-bottom: 1px dashed var(--cream-dark); display: flex; gap: 10px; }
+    .recipe-steps-list li:last-child { border-bottom: none; padding-bottom: 0; }
+    .step-number { width: 24px; height: 24px; background: var(--peach); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; color: var(--white); flex-shrink: 0; }
+    .step-text { flex: 1; line-height: 1.5; font-size: 0.95rem; }
+    .tips-section { background: var(--lavender-pale); border-radius: var(--radius-md); padding: 1rem; }
+    .tips-content { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6; }
+    .author-credit { display: flex; align-items: center; gap: 10px; padding: 12px; background: var(--mint-pale); border-radius: var(--radius-md); margin-bottom: 1rem; }
+    .author-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--mint); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; overflow: hidden; }
+    .author-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .author-info { flex: 1; }
+    .author-label { font-size: 0.7rem; color: var(--text-muted); }
+    .author-name { font-weight: 600; font-size: 0.95rem; }
+    .user-menu { position: absolute; top: 55px; right: 1rem; background: var(--white); border-radius: var(--radius-md); box-shadow: var(--shadow-soft); padding: 0.5rem; display: none; z-index: 200; min-width: 200px; }
+    .user-menu.active { display: block; animation: fadeIn 0.2s ease; }
+    .user-menu-header { padding: 10px 14px; border-bottom: 1px solid var(--cream-dark); margin-bottom: 0.4rem; }
+    .user-menu-name { font-weight: 600; font-size: 0.9rem; }
+    .user-menu-email { font-size: 0.75rem; color: var(--text-muted); }
+    .user-menu-item { padding: 10px 14px; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.85rem; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+    .user-menu-item:hover { background: var(--cream); }
+    .user-menu-item.danger { color: #E74C3C; }
+    .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--text-primary); color: var(--white); padding: 12px 20px; border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 500; z-index: 2000; opacity: 0; transition: all 0.3s ease; }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .xp-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0); background: linear-gradient(135deg, var(--yellow) 0%, #FFB347 100%); padding: 2rem; border-radius: var(--radius-lg); text-align: center; z-index: 3000; box-shadow: 0 10px 40px rgba(0,0,0,0.3); transition: transform 0.3s ease; }
+    .xp-popup.show { transform: translate(-50%, -50%) scale(1); }
+    .xp-popup-icon { font-size: 3rem; margin-bottom: 0.5rem; }
+    .xp-popup-text { font-family: 'Fraunces', serif; font-size: 1.5rem; font-weight: 700; color: #5D4E37; }
+    .xp-popup-sub { font-size: 0.9rem; color: #7D6E57; margin-top: 0.25rem; }
+    @media (min-width: 768px) { body { padding: 2rem; } .app-container { background: var(--white); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); padding: 1.5rem; padding-bottom: 2rem; } .modal-content { border-radius: var(--radius-lg); margin-bottom: 2rem; } .modal-overlay { align-items: center; } }
+  </style>
+</head>
+<body>
+  <div class="loading-screen" id="loadingScreen"><div class="loading-logo">Dapur<span>Kita</span></div><div class="loading-spinner"></div></div>
+  <div class="login-screen" id="loginScreen">
+    <svg class="login-illustration" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="100" r="80" fill="#E5F6F2"/><ellipse cx="100" cy="120" rx="50" ry="35" fill="#7DD3C0"/><ellipse cx="100" cy="110" rx="50" ry="15" fill="#5FBFAB"/><rect x="50" y="90" width="100" height="30" fill="#7DD3C0"/><ellipse cx="100" cy="90" rx="50" ry="15" fill="#B8E8DD"/><path d="M70 70 Q65 50, 75 40" stroke="#FFB5A7" stroke-width="4" stroke-linecap="round" fill="none"><animate attributeName="d" values="M70 70 Q65 50, 75 40;M70 70 Q75 50, 65 40;M70 70 Q65 50, 75 40" dur="2s" repeatCount="indefinite"/></path><path d="M100 65 Q95 45, 105 35" stroke="#C7B8EA" stroke-width="4" stroke-linecap="round" fill="none"><animate attributeName="d" values="M100 65 Q95 45, 105 35;M100 65 Q105 45, 95 35;M100 65 Q95 45, 105 35" dur="2.5s" repeatCount="indefinite"/></path><path d="M130 70 Q125 50, 135 40" stroke="#FFB5A7" stroke-width="4" stroke-linecap="round" fill="none"><animate attributeName="d" values="M130 70 Q125 50, 135 40;M130 70 Q135 50, 125 40;M130 70 Q125 50, 135 40" dur="2.2s" repeatCount="indefinite"/></path></svg>
+    <h1 class="login-title">Dapur<span>Kita</span></h1>
+    <p class="login-subtitle">Masak sehat jadi gampang! Temukan resep dari bahan yang kamu punya dengan AI.</p>
+    <button class="google-btn" id="googleSignIn"><svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>Masuk dengan Google</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+  <div class="app-container" id="appContainer">
+    <header class="app-header">
+      <div class="app-logo">Dapur<span>Kita</span></div>
+      <div class="header-right">
+        <div class="level-badge" id="levelBadge" title="Lihat progress">⭐ <span id="levelDisplay">Lv 1</span></div>
+        <div class="user-avatar" id="userAvatar"><span id="userInitials">?</span></div>
+      </div>
+      <div class="user-menu" id="userMenu">
+        <div class="user-menu-header"><div class="user-menu-name" id="menuUserName">User</div><div class="user-menu-email" id="menuUserEmail">email@example.com</div></div>
+        <div class="user-menu-item danger" id="signOutBtn"><span>🚪</span><span>Keluar</span></div>
+      </div>
+    </header>
+    <div class="greeting-section"><p class="greeting-text">Halo,</p><h2 class="greeting-name" id="userName">Teman Masak!</h2></div>
+    <nav class="tab-nav">
+      <button class="tab-btn active" data-tab="cook">🍳 Masak</button>
+      <button class="tab-btn" data-tab="pantry">🏪 Pantry</button>
+      <button class="tab-btn" data-tab="add">➕ Tambah</button>
+      <button class="tab-btn" data-tab="community">🏆 Komunitas</button>
+      <button class="tab-btn" data-tab="profile">👤 Profil</button>
+    </nav>
+    <section id="cook-section" class="section active">
+      <div class="input-card">
+        <p class="section-title">Hari ini punya apa?</p>
+        <div class="input-group"><input type="text" class="input-field" id="ingredientInput" placeholder="Ketik bahan (cth: ayam)"><button class="btn-add" id="addIngredientBtn">+ Tambah</button></div>
+        <p class="quick-add-label">Tambah cepat:</p>
+        <div class="quick-chips" id="quickChips"><button class="quick-chip" data-item="Telur">+ Telur</button><button class="quick-chip" data-item="Ayam">+ Ayam</button><button class="quick-chip" data-item="Tempe">+ Tempe</button><button class="quick-chip" data-item="Tahu">+ Tahu</button><button class="quick-chip" data-item="Udang">+ Udang</button><button class="quick-chip" data-item="Kangkung">+ Kangkung</button><button class="quick-chip" data-item="Wortel">+ Wortel</button><button class="quick-chip" data-item="Daging Sapi">+ Daging Sapi</button></div>
+      </div>
+      <div class="ingredients-section"><p class="section-title">Bahan kamu</p><div class="ingredients-list" id="ingredientsList"></div></div>
+      <button class="btn-find" id="findRecipesBtn">✨ Cari Resep dengan AI</button>
+      <div class="filters-scroll"><button class="filter-chip active" data-filter="all">Semua</button><button class="filter-chip" data-filter="quick">⚡ Cepat</button><button class="filter-chip" data-filter="nusantara">🇮🇩 Nusantara</button><button class="filter-chip" data-filter="western">🍝 Western</button><button class="filter-chip" data-filter="asian">🥢 Asian</button></div>
+      <div class="recipe-grid" id="recipeGrid"><div class="empty-state"><div class="empty-state-icon">🍽️</div><p class="empty-state-title">Mulai masak yuk!</p><p class="empty-state-text">Tambah bahan, lalu klik "Cari Resep dengan AI"</p></div></div>
+    </section>
+    <section id="pantry-section" class="section">
+      <p class="section-title">Bahan yang selalu ada</p>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">Tap untuk toggle. Bahan ini otomatis masuk saat cari resep.</p>
+      <div class="pantry-category"><p class="pantry-category-title">🧂 Bumbu dasar</p><div class="pantry-items" id="pantryBumbu"></div></div>
+      <div class="pantry-category"><p class="pantry-category-title">🫙 Saus & kecap</p><div class="pantry-items" id="pantrySaus"></div></div>
+      <div class="pantry-category"><p class="pantry-category-title">🫒 Minyak & lemak</p><div class="pantry-items" id="pantryMinyak"></div></div>
+      <div class="pantry-category"><p class="pantry-category-title">🍚 Karbohidrat</p><div class="pantry-items" id="pantryKarbo"></div></div>
+    </section>
+    <section id="add-section" class="section">
+      <div class="xp-reward-banner"><div class="xp-icon">🎁</div><div class="xp-info"><h4>Dapatkan +50 XP!</h4><p>Setiap resep yang kamu tambahkan akan mendapat XP</p></div></div>
+      <div class="add-recipe-card">
+        <p class="section-title">Tambah Resep Baru</p>
+        <form id="addRecipeForm">
+          <div class="form-group"><label class="form-label">Nama Resep *</label><input type="text" class="form-input" id="recipeName" placeholder="cth: Ayam Goreng Kremes" required></div>
+          <div class="form-row"><div class="form-group"><label class="form-label">Asal Masakan *</label><select class="form-select" id="recipeOrigin" required><option value="">Pilih...</option><option value="Jawa">Jawa</option><option value="Sunda">Sunda</option><option value="Padang">Padang</option><option value="Manado">Manado</option><option value="Bali">Bali</option><option value="Betawi">Betawi</option><option value="Western">Western</option><option value="Japanese">Japanese</option><option value="Korean">Korean</option><option value="Chinese">Chinese</option><option value="Thai">Thai</option><option value="Lainnya">Lainnya</option></select></div><div class="form-group"><label class="form-label">Kategori *</label><select class="form-select" id="recipeCategory" required><option value="">Pilih...</option><option value="nusantara">Nusantara</option><option value="western">Western</option><option value="asian">Asian</option></select></div></div>
+          <div class="form-row"><div class="form-group"><label class="form-label">Waktu Masak (menit) *</label><input type="number" class="form-input" id="recipeTime" placeholder="30" min="1" required></div><div class="form-group"><label class="form-label">Porsi *</label><input type="text" class="form-input" id="recipeServings" placeholder="2-3 porsi" required></div></div>
+          <div class="form-group"><label class="form-label">Tingkat Kesulitan *</label><select class="form-select" id="recipeDifficulty" required><option value="">Pilih...</option><option value="Mudah">Mudah</option><option value="Sedang">Sedang</option><option value="Sulit">Sulit</option></select></div>
+          <div class="form-group"><label class="form-label">Bahan-bahan (dengan takaran pasti) *</label><textarea class="form-textarea" id="recipeIngredients" placeholder="Tulis per baris dengan takaran PASTI, contoh:
+500 gram dada ayam fillet
+4 siung bawang putih
+2 sdm kecap manis
+1 sdt garam
+200 ml santan kental
+..." required></textarea><p class="form-hint">⚠️ Wajib tulis takaran pasti (gram, ml, sdm, sdt, siung, buah)</p></div>
+          <div class="form-group"><label class="form-label">Langkah Persiapan *</label><textarea class="form-textarea" id="recipePrep" placeholder="Tulis per baris, contoh:
+Cuci bersih 500 gram dada ayam, potong dadu 3x3 cm
+Haluskan 4 siung bawang putih dengan blender
+Marinasi ayam dengan bumbu selama 15 menit" required></textarea></div>
+          <div class="form-group"><label class="form-label">Langkah Memasak *</label><textarea class="form-textarea" id="recipeCooking" placeholder="Tulis per baris dengan waktu, contoh:
+Panaskan 3 sdm minyak dalam wajan dengan api sedang
+Tumis bumbu halus selama 2-3 menit hingga harum
+Masukkan ayam, masak 5-7 menit hingga berubah warna kecokelatan" required></textarea></div>
+          <div class="form-group"><label class="form-label">Langkah Penyajian</label><textarea class="form-textarea" id="recipeServing" placeholder="Tulis per baris, contoh:
+Angkat ayam dan tata di piring saji
+Siram dengan saus dari wajan
+Taburi dengan bawang goreng, sajikan dengan nasi hangat"></textarea></div>
+          <div class="form-group"><label class="form-label">Tips Memasak</label><textarea class="form-textarea" id="recipeTips" placeholder="Tips untuk hasil terbaik..."></textarea></div>
+          <button type="submit" class="btn-submit" id="submitRecipeBtn">🚀 Kirim Resep (+50 XP)</button>
+        </form>
+      </div>
+    </section>
+    <section id="community-section" class="section">
+      <p class="section-title">🏆 Top Contributors</p>
+      <div class="leaderboard-card" id="leaderboard"><div class="empty-state"><div class="empty-state-icon">🏆</div><p class="empty-state-text">Memuat leaderboard...</p></div></div>
+      <p class="section-title" style="margin-top: 1.5rem;">📚 Resep Terbaru dari Komunitas</p>
+      <div class="recipe-grid" id="communityRecipes"><div class="empty-state"><div class="empty-state-icon">📖</div><p class="empty-state-text">Memuat resep...</p></div></div>
+    </section>
+    <section id="profile-section" class="section">
+      <div class="level-card"><div class="level-header"><span class="level-title">Level Kamu</span><span class="level-number" id="profileLevel">Level 1 - Pemula</span></div><div class="level-progress"><div class="level-fill" id="levelFill" style="width: 0%"></div></div><p class="level-xp"><span id="currentXP">0</span> / <span id="nextLevelXP">100</span> XP</p></div>
+      <div class="profile-stats"><div class="stat-card"><div class="stat-value" id="statRecipes">0</div><div class="stat-label">Resep</div></div><div class="stat-card"><div class="stat-value" id="statXP">0</div><div class="stat-label">Total XP</div></div><div class="stat-card"><div class="stat-value" id="statRank">-</div><div class="stat-label">Rank</div></div></div>
+      <div class="badges-section"><p class="section-title">🏅 Badges</p><div class="badges-grid" id="badgesGrid"></div></div>
+      <p class="section-title" style="margin-top: 1.5rem;">📝 Resep Saya</p>
+      <div class="recipe-grid" id="myRecipes"><div class="empty-state"><div class="empty-state-icon">📝</div><p class="empty-state-title">Belum ada resep</p><p class="empty-state-text">Tambah resep pertamamu dan dapatkan XP!</p></div></div>
+    </section>
+  </div>
+  <div class="modal-overlay" id="recipeModal"><div class="modal-content"><div class="modal-header"><h3 class="modal-title" id="modalRecipeName">Nama Resep</h3><button class="modal-close" id="closeModal">✕</button></div><div class="modal-body" id="modalBody"></div></div></div>
+  <div class="toast" id="toast">Pesan</div>
+  <div class="xp-popup" id="xpPopup"><div class="xp-popup-icon">🎉</div><div class="xp-popup-text" id="xpPopupText">+50 XP!</div><div class="xp-popup-sub">Resep berhasil ditambahkan!</div></div>
+
+  <script>
+    const firebaseConfig = { apiKey: "AIzaSyB1WzluxNApJbLNI31_eKk-xgOEiMddvBY", authDomain: "dapurkita-31324.firebaseapp.com", projectId: "dapurkita-31324", storageBucket: "dapurkita-31324.firebasestorage.app", messagingSenderId: "41905281166", appId: "1:41905281166:web:d76395f27ca3f9e2abd1df" };
+    // API key disimpan aman di proxy.php (server-side)
+    const LEVELS = [{ level: 1, name: "Pemula", minXP: 0, maxXP: 100 },{ level: 2, name: "Home Cook", minXP: 100, maxXP: 250 },{ level: 3, name: "Juru Masak", minXP: 250, maxXP: 500 },{ level: 4, name: "Chef Rumahan", minXP: 500, maxXP: 1000 },{ level: 5, name: "Master Chef", minXP: 1000, maxXP: 2000 },{ level: 6, name: "Culinary Expert", minXP: 2000, maxXP: 5000 },{ level: 7, name: "Kitchen Legend", minXP: 5000, maxXP: 999999 }];
+    const BADGES = [{ id: 'first', icon: '🥇', name: 'Resep Pertama', cond: s => s.recipes >= 1 },{ id: 'five', icon: '📚', name: '5 Resep', cond: s => s.recipes >= 5 },{ id: 'ten', icon: '🏆', name: '10 Resep', cond: s => s.recipes >= 10 },{ id: 'nus', icon: '🇮🇩', name: 'Nusantara Master', cond: s => s.nusantara >= 5 },{ id: 'lv5', icon: '⭐', name: 'Master Chef', cond: s => s.level >= 5 },{ id: 'xp5', icon: '💎', name: 'XP Hunter', cond: s => s.xp >= 500 }];
+    const SPECIAL_INGREDIENTS = ['saffron', 'truffle', 'foie gras', 'wagyu', 'caviar', 'lobster', 'kepiting', 'crab', 'salmon', 'tuna sashimi', 'matsutake', 'uni', 'abalone', 'daging rusa', 'daging domba', 'lamb', 'duck', 'bebek peking', 'keju parmesan', 'mozzarella', 'cream cheese', 'mascarpone', 'gorgonzola', 'brie', 'camembert', 'santan kental', 'kelapa parut', 'kemiri', 'andaliman', 'kecombrang', 'kemangi', 'daun jeruk', 'serai', 'lengkuas', 'kunyit', 'jahe merah'];
+    
+    let auth, db, currentUser = null, userProfile = { xp: 0, recipes: [], badges: [] };
+    firebase.initializeApp(firebaseConfig); auth = firebase.auth(); db = firebase.firestore();
+    let userIngredients = [], recipes = [], allCommunityRecipes = [], activeFilter = 'all';
+    let pantryItems = { bumbu: ['Garam','Gula','Merica','Bawang merah','Bawang putih','Jahe','Kunyit','Lengkuas','Serai','Daun salam','Cabai'], saus: ['Kecap manis','Kecap asin','Saus tiram','Saus tomat','Sambal'], minyak: ['Minyak goreng','Mentega','Minyak wijen'], karbo: ['Beras','Mie','Tepung terigu','Tepung maizena'] };
+    let selectedPantry = { bumbu: ['Garam','Gula','Merica','Bawang merah','Bawang putih'], saus: ['Kecap manis'], minyak: ['Minyak goreng'], karbo: ['Beras'] };
+    const $ = id => document.getElementById(id);
+    
+    function showToast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000); }
+    function showXPPopup(xp) { const p = $('xpPopup'); $('xpPopupText').textContent = `+${xp} XP!`; p.classList.add('show'); setTimeout(() => p.classList.remove('show'), 2000); }
+    function getLevelInfo(xp) { for (let i = LEVELS.length - 1; i >= 0; i--) if (xp >= LEVELS[i].minXP) return LEVELS[i]; return LEVELS[0]; }
+    function isSpecialIngredient(name) { return SPECIAL_INGREDIENTS.some(s => name.toLowerCase().includes(s.toLowerCase())); }
+    function parseIngredients(text) { return text.split('\n').filter(l => l.trim()).map(l => { const m = l.match(/^([\d.\/½¼¾⅓⅔]+)\s*(gram|kg|sdm|sdt|siung|buah|lembar|butir|potong|ml|liter|cc|gelas|mangkok|cangkir|iris|batang|tangkai)?\s*(.+)$/i); const item = m ? m[3].trim() : l.trim(); return { amount: m ? m[1] : '', unit: m ? (m[2] || '') : '', item, isSpecial: isSpecialIngredient(item) }; }); }
+    function parseSteps(text) { return text.split('\n').filter(l => l.trim()); }
+    
+    $('googleSignIn').onclick = async () => { $('googleSignIn').disabled = true; $('loginError').classList.remove('show'); try { await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); } catch (e) { $('loginError').textContent = e.code === 'auth/unauthorized-domain' ? 'Domain belum terdaftar di Firebase.' : 'Gagal login: ' + e.message; $('loginError').classList.add('show'); $('googleSignIn').disabled = false; } };
+    auth.onAuthStateChanged(async u => { $('loadingScreen').classList.add('hidden'); if (u) { currentUser = u; await loadUserProfile(); showApp(); loadCommunityData(); } else { currentUser = null; $('loginScreen').classList.add('active'); $('appContainer').classList.remove('active'); } });
+    $('signOutBtn').onclick = () => auth.signOut();
+    
+    async function loadUserProfile() { try { const d = await db.collection('users').doc(currentUser.uid).get(); if (d.exists) { userProfile = { xp: 0, recipes: [], badges: [], ...d.data() }; selectedPantry = userProfile.selectedPantry || selectedPantry; userIngredients = userProfile.userIngredients || []; } } catch (e) {} }
+    async function saveUserProfile() { if (!currentUser) return; try { await db.collection('users').doc(currentUser.uid).set({ ...userProfile, selectedPantry, userIngredients, displayName: currentUser.displayName, photoURL: currentUser.photoURL, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }); } catch (e) {} }
+    
+    function showApp() { $('loginScreen').classList.remove('active'); $('appContainer').classList.add('active'); $('userName').textContent = (currentUser.displayName?.split(' ')[0] || 'Teman') + '!'; $('menuUserName').textContent = currentUser.displayName || 'User'; $('menuUserEmail').textContent = currentUser.email || ''; $('userAvatar').innerHTML = currentUser.photoURL ? `<img src="${currentUser.photoURL}" referrerpolicy="no-referrer">` : `<span>${currentUser.displayName?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || '?'}</span>`; updateLevelDisplay(); renderPantry(); renderIngredients(); renderProfile(); }
+    function updateLevelDisplay() { $('levelDisplay').textContent = `Lv ${getLevelInfo(userProfile.xp).level}`; }
+    
+    async function loadCommunityData() { try { const r = await db.collection('recipes').orderBy('createdAt', 'desc').limit(20).get(); allCommunityRecipes = r.docs.map(d => ({ id: d.id, ...d.data(), source: 'user' })); renderCommunityRecipes(); const u = await db.collection('users').orderBy('xp', 'desc').limit(10).get(); renderLeaderboard(u.docs.map(d => ({ id: d.id, ...d.data() }))); } catch (e) {} }
+    function renderLeaderboard(users) { if (!users.length) { $('leaderboard').innerHTML = '<div class="empty-state"><p class="empty-state-text">Belum ada data</p></div>'; return; } $('leaderboard').innerHTML = users.map((u, i) => `<div class="leaderboard-item"><div class="leaderboard-rank ${i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''}">${i + 1}</div><div class="leaderboard-avatar">${u.photoURL ? `<img src="${u.photoURL}" referrerpolicy="no-referrer">` : (u.displayName?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || '?')}</div><div class="leaderboard-info"><div class="leaderboard-name">${u.displayName || 'Anonymous'}</div><div class="leaderboard-stats">${u.recipes?.length || 0} resep</div></div><div class="leaderboard-xp">${u.xp || 0} XP</div></div>`).join(''); }
+    function renderCommunityRecipes() { if (!allCommunityRecipes.length) { $('communityRecipes').innerHTML = '<div class="empty-state"><div class="empty-state-icon">📖</div><p class="empty-state-text">Belum ada resep dari komunitas</p></div>'; return; } $('communityRecipes').innerHTML = allCommunityRecipes.map((r, i) => `<div class="recipe-card user-recipe" onclick="showRecipeDetail(allCommunityRecipes[${i}])"><div class="recipe-source user">👤 RESEP KOMUNITAS</div><div class="recipe-author">📝 Resep by ${r.authorName || 'Anonymous'}</div><div class="recipe-header"><span class="recipe-name">${r.name}</span><span class="recipe-origin">${r.origin}</span></div><div class="recipe-meta"><span>⏱ ${r.time} menit</span><span>🍽️ ${r.servings}</span></div></div>`).join(''); }
+    
+    function renderProfile() { const l = getLevelInfo(userProfile.xp), p = ((userProfile.xp - l.minXP) / (l.maxXP - l.minXP)) * 100; $('profileLevel').textContent = `Level ${l.level} - ${l.name}`; $('levelFill').style.width = `${Math.min(p, 100)}%`; $('currentXP').textContent = userProfile.xp; $('nextLevelXP').textContent = l.maxXP; $('statRecipes').textContent = userProfile.recipes?.length || 0; $('statXP').textContent = userProfile.xp; const s = { recipes: userProfile.recipes?.length || 0, xp: userProfile.xp, level: l.level, nusantara: userProfile.recipes?.filter(r => r.category === 'nusantara').length || 0 }; $('badgesGrid').innerHTML = BADGES.map(b => `<div class="badge-item ${b.cond(s) ? '' : 'locked'}">${b.icon}<span class="badge-tooltip">${b.name}</span></div>`).join(''); if (userProfile.recipes?.length > 0) $('myRecipes').innerHTML = userProfile.recipes.map((r, i) => `<div class="recipe-card" onclick="showRecipeDetail(userProfile.recipes[${i}])"><div class="recipe-header"><span class="recipe-name">${r.name}</span><span class="recipe-origin">${r.origin}</span></div><div class="recipe-meta"><span>⏱ ${r.time} menit</span></div></div>`).join(''); }
+    
+    $('addRecipeForm').onsubmit = async e => { e.preventDefault(); const btn = $('submitRecipeBtn'); btn.disabled = true; btn.textContent = 'Mengirim...'; const recipe = { name: $('recipeName').value.trim(), origin: $('recipeOrigin').value, category: $('recipeCategory').value, time: parseInt($('recipeTime').value), servings: $('recipeServings').value.trim(), difficulty: $('recipeDifficulty').value, ingredients: parseIngredients($('recipeIngredients').value), sections: [{ title: 'Persiapan', steps: parseSteps($('recipePrep').value) }, { title: 'Memasak', steps: parseSteps($('recipeCooking').value) }], tips: $('recipeTips').value.trim(), authorId: currentUser.uid, authorName: currentUser.displayName, authorPhoto: currentUser.photoURL, source: 'user', createdAt: firebase.firestore.FieldValue.serverTimestamp() }; const serv = parseSteps($('recipeServing').value); if (serv.length) recipe.sections.push({ title: 'Penyajian', steps: serv }); try { const ref = await db.collection('recipes').add(recipe); recipe.id = ref.id; const isFirst = !userProfile.recipes?.length, xp = 50 + (isFirst ? 25 : 0); userProfile.xp = (userProfile.xp || 0) + xp; userProfile.recipes = userProfile.recipes || []; userProfile.recipes.push(recipe); await saveUserProfile(); showXPPopup(xp); updateLevelDisplay(); renderProfile(); loadCommunityData(); $('addRecipeForm').reset(); showToast('Resep berhasil ditambahkan! 🎉'); document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); document.querySelectorAll('.section').forEach(s => s.classList.remove('active')); document.querySelector('[data-tab="profile"]').classList.add('active'); $('profile-section').classList.add('active'); } catch (e) { showToast('Gagal menambah resep.'); } btn.disabled = false; btn.textContent = '🚀 Kirim Resep (+50 XP)'; };
+    
+    document.querySelectorAll('.tab-btn').forEach(b => b.onclick = () => { document.querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active')); document.querySelectorAll('.section').forEach(x => x.classList.remove('active')); b.classList.add('active'); $(`${b.dataset.tab}-section`).classList.add('active'); });
+    
+    function getAllSelectedPantry() { return Object.values(selectedPantry).flat(); }
+    function addIngredient(item) { const n = item.trim(); if (!n) return; if (!userIngredients.includes(n) && !getAllSelectedPantry().includes(n)) { userIngredients.push(n); renderIngredients(); saveUserProfile(); } $('ingredientInput').value = ''; }
+    function renderIngredients() { 
+      const pantryTags = getAllSelectedPantry().map(i => `<div class="ingredient-tag pantry">${i}<span class="tag-remove" onclick="removePantryItem('${i}')">✕</span></div>`).join('');
+      const userTags = userIngredients.map(i => `<div class="ingredient-tag fresh">${i}<span class="tag-remove" onclick="removeIngredient('${i}')">✕</span></div>`).join('');
+      $('ingredientsList').innerHTML = pantryTags + userTags || '<div style="color:var(--text-muted);font-size:0.9rem;">Belum ada bahan. Tambah dari quick chips atau ketik manual.</div>';
+    }
+    window.removeIngredient = i => { userIngredients = userIngredients.filter(x => x !== i); renderIngredients(); saveUserProfile(); };
+    window.removePantryItem = i => { 
+      Object.keys(selectedPantry).forEach(cat => { selectedPantry[cat] = selectedPantry[cat].filter(x => x !== i); });
+      renderIngredients(); renderPantry(); saveUserProfile();
+    };
+    $('addIngredientBtn').onclick = () => addIngredient($('ingredientInput').value);
+    $('ingredientInput').onkeypress = e => { if (e.key === 'Enter') { e.preventDefault(); addIngredient($('ingredientInput').value); } };
+    $('quickChips').querySelectorAll('.quick-chip').forEach(c => c.onclick = () => addIngredient(c.dataset.item));
+    
+    function renderPantry() { const cats = { pantryBumbu: { items: pantryItems.bumbu, selected: selectedPantry.bumbu, key: 'bumbu' }, pantrySaus: { items: pantryItems.saus, selected: selectedPantry.saus, key: 'saus' }, pantryMinyak: { items: pantryItems.minyak, selected: selectedPantry.minyak, key: 'minyak' }, pantryKarbo: { items: pantryItems.karbo, selected: selectedPantry.karbo, key: 'karbo' } }; Object.entries(cats).forEach(([id, { items, selected, key }]) => { $(id).innerHTML = items.map(i => `<button class="pantry-item ${selected.includes(i) ? 'selected' : ''}" onclick="togglePantry('${key}','${i}',this)">${i}</button>`).join(''); }); }
+    window.togglePantry = (cat, item, el) => { if (selectedPantry[cat].includes(item)) { selectedPantry[cat] = selectedPantry[cat].filter(i => i !== item); el.classList.remove('selected'); } else { selectedPantry[cat].push(item); el.classList.add('selected'); } renderIngredients(); saveUserProfile(); };
+    
+    document.querySelectorAll('.filter-chip').forEach(c => c.onclick = () => { document.querySelectorAll('.filter-chip').forEach(x => x.classList.remove('active')); c.classList.add('active'); activeFilter = c.dataset.filter; if (recipes.length) renderRecipes(); });
+    
+    $('findRecipesBtn').onclick = findRecipes;
+    async function findRecipes() {
+      const all = [...getAllSelectedPantry(), ...userIngredients];
+      if (all.length < 2) { showToast('Tambah minimal 2 bahan dulu!'); return; }
+      const btn = $('findRecipesBtn'); btn.classList.add('loading'); btn.innerHTML = '<div class="spinner"></div> AI sedang mencari resep detail...';
+      
+      // Get matching community recipes
+      const communityMatches = matchCommunityRecipes(all);
+      
+      // Get AI recipes
+      let aiRecipes = [];
+      try { aiRecipes = await getAIRecipes(all); } catch (e) { console.log('AI error:', e); }
+      
+      // Mix results: AI first, then community
+      recipes = [...aiRecipes, ...communityMatches];
+      
+      renderRecipes();
+      btn.classList.remove('loading'); btn.innerHTML = '✨ Cari Resep dengan AI';
+      showToast(`Ditemukan ${recipes.length} resep! (${aiRecipes.length} AI + ${communityMatches.length} komunitas)`);
+    }
+    
+    function matchCommunityRecipes(ings) {
+      const lower = ings.map(i => i.toLowerCase());
+      return allCommunityRecipes.map(r => {
+        const ri = r.ingredients.map(i => (i.item || i).toLowerCase());
+        const matched = ri.filter(i => lower.some(u => i.includes(u) || u.includes(i)));
+        const missing = r.ingredients.filter(i => !lower.some(u => (i.item || i).toLowerCase().includes(u) || u.includes((i.item || i).toLowerCase())));
+        return { ...r, matched, missing, matchPercent: Math.round((matched.length / ri.length) * 100), source: 'user' };
+      }).filter(r => r.matchPercent >= 30).sort((a, b) => b.matchPercent - a.matchPercent);
+    }
+    
+    async function getAIRecipes(ings) {
+      const res = await fetch('./proxy.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 4000,
+          messages: [{
+            role: 'user',
+            content: `Kamu adalah CHEF PROFESIONAL. Bahan yang tersedia: ${ings.join(', ')}.
+
+BERIKAN 3 RESEP LENGKAP dengan format SANGAT DETAIL seperti buku resep profesional.
+
+⚠️ ATURAN KETAT - WAJIB DIIKUTI:
+1. SEMUA bahan HARUS ada TAKARAN PASTI:
+   - Berat: 500 gram, 250 gram, 100 gram (BUKAN "secukupnya")
+   - Volume: 200 ml, 500 ml, 1 liter
+   - Sendok: 2 sdm, 1 sdt, 1/2 sdt
+   - Hitungan: 4 siung, 2 buah, 3 lembar, 5 butir
+   
+2. SEMUA langkah HARUS ada DURASI WAKTU:
+   - "Tumis selama 2-3 menit hingga harum"
+   - "Masak dengan api sedang selama 15 menit"
+   - "Diamkan 10 menit sebelum disajikan"
+   
+3. WAJIB ada 3 SECTION: Persiapan, Memasak, Penyajian
+
+4. Tandai bahan SPESIAL/KHUSUS yang mungkin tidak ada di dapur biasa (isSpecial: true)
+
+FORMAT JSON (tanpa markdown):
+[{
+  "name": "Nama Resep Spesifik (misal: Ayam Goreng Mentega Saus Tiram)",
+  "origin": "Jawa/Sunda/Padang/Western/Japanese/Korean/Chinese",
+  "time": 35,
+  "category": "nusantara/western/asian",
+  "difficulty": "Mudah/Sedang/Sulit",
+  "servings": "2-3 porsi",
+  "ingredients": [
+    {"amount": "500", "unit": "gram", "item": "dada ayam fillet, potong dadu 3x3 cm", "isSpecial": false},
+    {"amount": "4", "unit": "siung", "item": "bawang putih, cincang halus", "isSpecial": false},
+    {"amount": "3", "unit": "sdm", "item": "mentega tawar", "isSpecial": false},
+    {"amount": "2", "unit": "sdm", "item": "saus tiram", "isSpecial": false},
+    {"amount": "2", "unit": "sdm", "item": "kecap manis", "isSpecial": false},
+    {"amount": "1", "unit": "sdt", "item": "garam", "isSpecial": false},
+    {"amount": "1/2", "unit": "sdt", "item": "merica bubuk", "isSpecial": false},
+    {"amount": "100", "unit": "ml", "item": "air matang", "isSpecial": false},
+    {"amount": "2", "unit": "sdm", "item": "minyak goreng", "isSpecial": false}
+  ],
+  "matched": ["ayam", "bawang putih", "kecap manis", "garam", "merica"],
+  "missing": [{"item": "saus tiram", "isSpecial": false}, {"item": "mentega", "isSpecial": false}],
+  "matchPercent": 75,
+  "sections": [
+    {
+      "title": "Persiapan Bahan (10 menit)",
+      "steps": [
+        "Cuci bersih 500 gram dada ayam dengan air mengalir, tiriskan",
+        "Potong ayam menjadi dadu ukuran 3x3 cm",
+        "Cincang halus 4 siung bawang putih",
+        "Campurkan ayam dengan 1/2 sdt garam dan 1/4 sdt merica, aduk rata",
+        "Diamkan ayam yang sudah dibumbui selama 10-15 menit di suhu ruang"
+      ]
+    },
+    {
+      "title": "Proses Memasak (20 menit)",
+      "steps": [
+        "Panaskan 2 sdm minyak goreng dan 1 sdm mentega dalam wajan anti lengket dengan api sedang",
+        "Tumis bawang putih cincang selama 30-45 detik hingga harum, jangan sampai gosong",
+        "Masukkan potongan ayam, aduk rata. Masak selama 5-6 menit hingga permukaan ayam berubah warna kecokelatan",
+        "Tambahkan 2 sdm saus tiram dan 2 sdm kecap manis, aduk hingga ayam terbalut rata dengan saus",
+        "Tuang 100 ml air, aduk sebentar. Kecilkan api menjadi api kecil",
+        "Tutup wajan, masak selama 8-10 menit hingga air menyusut dan saus mengental",
+        "Buka tutup, tambahkan 2 sdm mentega sisa, aduk hingga mentega meleleh dan melapisi ayam",
+        "Koreksi rasa dengan menambah 1/2 sdt garam atau kecap jika perlu"
+      ]
+    },
+    {
+      "title": "Penyajian",
+      "steps": [
+        "Angkat ayam beserta sausnya, tata di piring saji",
+        "Taburi dengan 1 sdm bawang goreng di atasnya",
+        "Hias dengan irisan daun bawang atau seledri",
+        "Sajikan segera selagi hangat bersama nasi putih"
+      ]
+    }
+  ],
+  "tips": "Untuk hasil lebih empuk, marinasi ayam di dalam kulkas selama 30 menit sampai 1 jam. Jangan terlalu sering mengaduk saat menumis agar ayam mendapat warna caramelization yang cantik. Gunakan api sedang-kecil agar saus tidak gosong.",
+  "source": "ai"
+}]`
+          }]
+        })
+      });
+      if (!res.ok) throw new Error('API failed');
+      const data = await res.json();
+      let text = data.content[0].text.trim().replace(/```json?\n?/g, '').replace(/```/g, '');
+      const parsed = JSON.parse(text);
+      return parsed.map(r => ({ ...r, source: 'ai' }));
+    }
+    
+    function renderRecipes() {
+      let f = [...recipes];
+      if (activeFilter === 'quick') f = f.filter(r => r.time <= 20);
+      else if (activeFilter !== 'all') f = f.filter(r => r.category === activeFilter);
+      
+      if (!f.length) { $('recipeGrid').innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔍</div><p class="empty-state-title">Tidak ada yang cocok</p><p class="empty-state-text">Coba tambah lebih banyak bahan atau ubah filter</p></div>'; return; }
+      
+      $('recipeGrid').innerHTML = f.map((r, i) => `
+        <div class="recipe-card ${r.source === 'ai' ? 'ai-recipe' : 'user-recipe'}" onclick="showRecipeDetail(recipes[${i}])">
+          <div class="recipe-source ${r.source === 'ai' ? 'ai' : 'user'}">${r.source === 'ai' ? '🤖 AI RECIPE' : '👤 KOMUNITAS'}</div>
+          ${r.authorName && r.source === 'user' ? `<div class="recipe-author">📝 Resep by ${r.authorName}</div>` : ''}
+          <div class="recipe-header"><span class="recipe-name">${r.name}</span><span class="recipe-origin">${r.origin}</span></div>
+          <div class="recipe-meta"><span>⏱ ${r.time} menit</span><span>📊 ${r.difficulty || 'Sedang'}</span><span>🍽️ ${r.servings}</span></div>
+          <div class="match-indicator"><div class="match-bar"><div class="match-fill ${r.matchPercent >= 70 ? 'high' : 'medium'}" style="width:${r.matchPercent}%"></div></div><span class="match-text">${r.matchPercent}%</span></div>
+          ${r.missing?.length ? `<div class="recipe-missing">⚠️ Perlu beli: ${r.missing.slice(0, 3).map(m => m.item || m).join(', ')}${r.missing.length > 3 ? ` +${r.missing.length - 3} lagi` : ''}</div>` : ''}
+        </div>
+      `).join('');
+    }
+    
+    window.showRecipeDetail = r => {
+      $('modalRecipeName').textContent = r.name;
+      
+      const ings = r.ingredients.map(i => {
+        const item = i.item || i;
+        const amount = i.amount || '';
+        const unit = i.unit || '';
+        const isMissing = r.missing?.some(m => (m.item || m).toLowerCase().includes(item.toLowerCase()));
+        const isSpecial = i.isSpecial || isSpecialIngredient(item);
+        return `<li>
+          <span class="ingredient-check ${isMissing ? 'missing' : isSpecial ? 'special' : ''}">${isMissing ? '✕' : isSpecial ? '★' : '✓'}</span>
+          <span class="ingredient-amount">${amount} ${unit}</span>
+          <span class="ingredient-name">${item}${isSpecial ? '<span class="special-badge">KHUSUS</span>' : ''}</span>
+        </li>`;
+      }).join('');
+      
+      const secs = r.sections?.map((s, i) => `
+        <div class="recipe-section-group">
+          <div class="section-header">
+            <span class="section-letter">${String.fromCharCode(65 + i)}</span>
+            <span class="section-title-text">${s.title}</span>
+          </div>
+          <ol class="recipe-steps-list">${s.steps.map((st, j) => `<li><span class="step-number">${j + 1}</span><span class="step-text">${st}</span></li>`).join('')}</ol>
+        </div>
+      `).join('') || '';
+      
+      $('modalBody').innerHTML = `
+        ${r.source === 'ai' ? '<div class="author-credit" style="background: var(--mint-pale);"><div class="author-avatar" style="background: var(--mint);">🤖</div><div class="author-info"><div class="author-label">Dibuat oleh</div><div class="author-name">AI Chef DapurKita</div></div></div>' : ''}
+        ${r.authorName && r.source === 'user' ? `<div class="author-credit"><div class="author-avatar">${r.authorPhoto ? `<img src="${r.authorPhoto}" referrerpolicy="no-referrer">` : r.authorName.charAt(0)}</div><div class="author-info"><div class="author-label">Resep oleh</div><div class="author-name">${r.authorName}</div></div></div>` : ''}
+        <div class="recipe-section">
+          <div class="recipe-info-grid">
+            <div class="info-item"><span class="info-icon">🌍</span><span class="info-label">Asal</span><span class="info-value">${r.origin}</span></div>
+            <div class="info-item"><span class="info-icon">⏱️</span><span class="info-label">Waktu</span><span class="info-value">${r.time} menit</span></div>
+            <div class="info-item"><span class="info-icon">📊</span><span class="info-label">Kesulitan</span><span class="info-value">${r.difficulty || 'Sedang'}</span></div>
+            <div class="info-item"><span class="info-icon">🍽️</span><span class="info-label">Porsi</span><span class="info-value">${r.servings || '2-3 porsi'}</span></div>
+          </div>
+        </div>
+        <div class="recipe-section">
+          <p class="recipe-section-title">🥗 Bahan-bahan</p>
+          <ul class="recipe-ingredients-list">${ings}</ul>
+          ${r.missing?.length ? `<p style="margin-top: 10px; font-size: 0.8rem; color: var(--peach); font-weight: 600;">⚠️ Bahan yang perlu dibeli: ${r.missing.map(m => m.item || m).join(', ')}</p>` : ''}
+        </div>
+        <div class="recipe-section">
+          <p class="recipe-section-title">👨‍🍳 Cara Membuat</p>
+          ${secs}
+        </div>
+        ${r.tips ? `<div class="recipe-section tips-section"><p class="recipe-section-title">💡 Tips dari Chef</p><div class="tips-content">${r.tips}</div></div>` : ''}
+      `;
+      $('recipeModal').classList.add('active');
+    };
+    
+    $('closeModal').onclick = () => $('recipeModal').classList.remove('active');
+    $('recipeModal').onclick = e => { if (e.target === $('recipeModal')) $('recipeModal').classList.remove('active'); };
+    $('userAvatar').onclick = e => { e.stopPropagation(); $('userMenu').classList.toggle('active'); };
+    $('levelBadge').onclick = () => { document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); document.querySelectorAll('.section').forEach(s => s.classList.remove('active')); document.querySelector('[data-tab="profile"]').classList.add('active'); $('profile-section').classList.add('active'); };
+    document.onclick = e => { if (!$('userMenu').contains(e.target)) $('userMenu').classList.remove('active'); };
+    
+    renderPantry(); renderIngredients();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1529 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard — Sukabumi Discovery</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="firebase-config.js"></script>
+
+<style>
+/* ── RESET & VARS ── */
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0C0C0E;--sb:#0F0F12;--s1:#141417;--s2:#1A1A1F;
+  --b1:#1E1E24;--b2:#26262E;
+  --t1:#EEECEA;--t2:#8A8A9A;--t3:#4A4A5A;
+  --accent:#F05A10;--adim:rgba(240,90,16,.12);
+  --blue:#2D32F0;--teal:#5DD4C4;--yellow:#F0C820;--red:#C83060;
+  --mono:'JetBrains Mono',monospace;--display:'Syne',sans-serif;--body:'Plus Jakarta Sans',sans-serif;
+  --sw:240px;--hh:56px;--r:12px;
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--body);background:var(--bg);color:var(--t1);display:flex}
+*{scrollbar-width:thin;scrollbar-color:var(--b2) transparent}
+*::-webkit-scrollbar{width:4px;height:4px}
+*::-webkit-scrollbar-thumb{background:var(--b2);border-radius:4px}
+
+/* ── LAYOUT ── */
+.sidebar{width:var(--sw);height:100vh;flex-shrink:0;background:var(--sb);border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden;position:relative;z-index:10;transition:width .3s}
+.main{flex:1;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+.topbar{height:var(--hh);flex-shrink:0;background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;padding:0 24px;gap:14px}
+.content{flex:1;overflow-y:auto;padding:26px;background:var(--bg)}
+
+/* ── SIDEBAR ── */
+.sb-logo{padding:14px 18px 12px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:10px}
+.sb-mark{width:30px;height:30px;border-radius:7px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;font-family:var(--display);color:white;flex-shrink:0}
+.sb-name{font-family:var(--display);font-size:12px;font-weight:700;line-height:1.2}
+.sb-name span{display:block;font-size:9px;font-family:var(--mono);color:var(--t3);text-transform:uppercase;letter-spacing:.06em}
+.sb-scroll{flex:1;overflow-y:auto;padding:8px 0}
+.sb-sec{padding:6px 12px 2px}
+.sb-sec-label{font-family:var(--mono);font-size:9px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.12em;padding:0 8px;margin-bottom:3px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;color:var(--t2);transition:all .15s;margin-bottom:1px;position:relative;white-space:nowrap}
+.nav-item:hover{background:var(--s2);color:var(--t1)}
+.nav-item.active{background:var(--adim);color:var(--accent)}
+.nav-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:16px;background:var(--accent);border-radius:0 3px 3px 0}
+.ni{font-size:15px;width:18px;text-align:center;flex-shrink:0}
+.nb{margin-left:auto;background:var(--accent);color:white;font-family:var(--mono);font-size:9px;font-weight:600;padding:2px 6px;border-radius:100px}
+.nb.blue{background:var(--blue)}
+.nb.green{background:var(--teal);color:var(--bg)}
+.sb-footer{margin-top:auto;padding:12px 10px;border-top:1px solid var(--b1)}
+.au{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:7px;cursor:pointer;transition:background .15s}
+.au:hover{background:var(--s2)}
+.au-av{width:28px;height:28px;border-radius:7px;background:var(--accent);color:white;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:11px;font-weight:800;flex-shrink:0}
+.au-info strong{display:block;font-size:11px;font-weight:700}
+.au-info span{font-family:var(--mono);font-size:9px;color:var(--t3);text-transform:uppercase}
+.au-out{margin-left:auto;font-size:13px;opacity:.3;transition:opacity .2s}
+.au:hover .au-out{opacity:1;color:var(--red)}
+
+/* ── TOPBAR ── */
+.tb-title{font-family:var(--display);font-size:14px;font-weight:700}
+.tb-bc{font-family:var(--mono);font-size:10px;color:var(--t3)}
+.tb-actions{display:flex;align-items:center;gap:8px}
+.searchbar{display:flex;align-items:center;gap:7px;background:var(--s2);border:1px solid var(--b2);border-radius:7px;padding:5px 10px;max-width:260px}
+.searchbar input{background:none;border:none;outline:none;font-size:12px;color:var(--t1);width:100%}
+.searchbar input::placeholder{color:var(--t3)}
+.preview-link{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:7px;font-size:11px;font-weight:700;background:rgba(93,212,196,.1);color:var(--teal);border:1px solid rgba(93,212,196,.2);cursor:pointer;transition:all .2s;font-family:var(--display);text-decoration:none}
+.preview-link:hover{background:rgba(93,212,196,.2)}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:7px;font-size:11px;font-weight:700;font-family:var(--display);border:none;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-p{background:var(--accent);color:white}
+.btn-p:hover:not(:disabled){background:#d44e0e}
+.btn-s{background:var(--s2);color:var(--t1);border:1px solid var(--b2)}
+.btn-s:hover:not(:disabled){background:var(--b2)}
+.btn-d{background:rgba(200,48,96,.12);color:#f87a9a;border:1px solid rgba(200,48,96,.25)}
+.btn-d:hover{background:rgba(200,48,96,.22)}
+.btn-ok{background:rgba(93,212,196,.12);color:var(--teal);border:1px solid rgba(93,212,196,.25)}
+.btn-ok:hover{background:rgba(93,212,196,.22)}
+.btn-sm{padding:4px 10px;font-size:10px}
+
+/* ── PANELS ── */
+.panel{display:none;animation:fi .2s ease}
+.panel.active{display:block}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── STATS ── */
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
+.sc{background:var(--s1);border:1px solid var(--b2);border-radius:var(--r);padding:16px}
+.sc-lbl{font-family:var(--mono);font-size:9px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px}
+.sc-val{font-family:var(--display);font-size:26px;font-weight:800;line-height:1}
+.sc-sub{font-size:11px;color:var(--t3);margin-top:5px}
+
+/* ── TABLE CARD ── */
+.tc{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden;margin-bottom:18px}
+.tc-hd{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--b1);gap:12px;flex-wrap:wrap}
+.tc-title{font-family:var(--display);font-size:13px;font-weight:700}
+.tc-acts{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+table{width:100%;border-collapse:collapse}
+th{padding:10px 14px;text-align:left;font-family:var(--mono);font-size:9px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;background:var(--bg);border-bottom:1px solid var(--b1);white-space:nowrap}
+td{padding:12px 14px;font-size:12px;border-bottom:1px solid var(--b1);vertical-align:middle}
+tr:last-child td{border:none}
+tr:hover td{background:rgba(255,255,255,.015)}
+.ci{width:36px;height:36px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;border:1px solid var(--b1)}
+.cwi{display:flex;align-items:center;gap:10px}
+.ct{font-weight:600;font-size:12px}
+.cs{font-size:10px;color:var(--t3);margin-top:1px;font-family:var(--mono)}
+.ra{display:flex;gap:5px;justify-content:flex-end}
+.sb{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:100px;font-family:var(--mono);font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.sb-pub{background:rgba(93,212,196,.1);color:var(--teal);border:1px solid rgba(93,212,196,.2)}
+.sb-dft{background:rgba(240,200,32,.1);color:var(--yellow);border:1px solid rgba(240,200,32,.2)}
+.sb-arc{background:rgba(90,90,106,.15);color:var(--t3);border:1px solid var(--b2)}
+.sb-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+.pg{display:flex;align-items:center;gap:5px;padding:12px 18px;border-top:1px solid var(--b1);justify-content:flex-end}
+.pg-info{font-family:var(--mono);font-size:10px;color:var(--t3);margin-right:auto}
+.pb{width:28px;height:28px;border-radius:5px;border:1px solid var(--b2);background:none;color:var(--t2);font-family:var(--mono);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.pb:hover,.pb.active{background:var(--accent);border-color:var(--accent);color:white}
+input[type=search],input.filter-input{padding:6px 10px;background:var(--bg);border:1px solid var(--b2);border-radius:7px;color:var(--t1);font-size:11px;outline:none;width:160px}
+input[type=search]:focus,input.filter-input:focus{border-color:var(--accent)}
+select.filter-sel{padding:6px 10px;background:var(--bg);border:1px solid var(--b2);border-radius:7px;color:var(--t1);font-size:11px;outline:none}
+
+/* ── MODAL ── */
+.mo{position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.7);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;padding:20px}
+.mo.open{display:flex}
+.mb{background:var(--s1);border:1px solid var(--b2);border-radius:14px;width:100%;max-width:540px;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.6);animation:min .2s ease}
+.mb.wide{max-width:720px}
+@keyframes min{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+.mh{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--b1)}
+.mh-title{font-family:var(--display);font-size:16px;font-weight:700}
+.mc{width:28px;height:28px;border-radius:5px;border:1px solid var(--b2);background:none;color:var(--t2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;transition:all .2s}
+.mc:hover{background:var(--s2);color:var(--t1)}
+.mbody{padding:22px}
+.mfoot{padding:14px 22px;border-top:1px solid var(--b1);display:flex;gap:8px;justify-content:flex-end}
+
+/* ── FORM ── */
+.fr{margin-bottom:14px}
+.fr label{display:block;font-family:var(--mono);font-size:9px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.fr input,.fr select,.fr textarea{width:100%;padding:9px 12px;background:var(--bg);border:1px solid var(--b2);border-radius:7px;color:var(--t1);font-size:12px;outline:none;transition:border-color .2s;font-family:var(--body)}
+.fr input:focus,.fr select:focus,.fr textarea:focus{border-color:var(--accent)}
+.fr select option{background:var(--s1)}
+.fr textarea{resize:vertical;min-height:80px;line-height:1.6}
+.fr-hint{font-family:var(--mono);font-size:9px;color:var(--t3);margin-top:4px}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tr-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--b1)}
+.tr-row:last-child{border:none}
+.tr-lbl{font-size:12px;font-weight:600}
+.tr-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.toggle{position:relative;width:36px;height:20px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.ts{position:absolute;inset:0;background:var(--b2);border-radius:100px;cursor:pointer;transition:background .2s}
+.ts::before{content:'';position:absolute;left:3px;top:3px;width:14px;height:14px;background:var(--t3);border-radius:50%;transition:all .2s}
+.toggle input:checked+.ts{background:var(--accent)}
+.toggle input:checked+.ts::before{transform:translateX(16px);background:white}
+
+/* ── DASHBOARD HOME ── */
+.dash-grid{display:grid;grid-template-columns:1fr 320px;gap:18px}
+.qa-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px}
+.qa{background:var(--s1);border:1px solid var(--b2);border-radius:var(--r);padding:14px;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;gap:6px;text-align:left;color:var(--t1)}
+.qa:hover{border-color:var(--accent);background:var(--adim)}
+.qa-icon{font-size:20px}
+.qa-label{font-family:var(--display);font-size:12px;font-weight:700}
+.qa-sub{font-size:10px;color:var(--t3)}
+.af-item{display:flex;gap:10px;padding:10px 16px;border-bottom:1px solid var(--b1);align-items:flex-start}
+.af-item:last-child{border:none}
+.afdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.af-text{font-size:11px;color:var(--t2);line-height:1.5;flex:1}
+.af-text strong{color:var(--t1);font-weight:600}
+.af-time{font-family:var(--mono);font-size:9px;color:var(--t3)}
+.bar-chart{display:flex;align-items:flex-end;gap:6px;height:90px;padding:0 2px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
+.bar{width:100%;border-radius:3px 3px 0 0;transition:height .4s ease;min-height:3px}
+.bar-lbl{font-family:var(--mono);font-size:8px;color:var(--t3)}
+.bar-v{font-family:var(--mono);font-size:8px;color:var(--t2)}
+
+/* ── SETTINGS TABS ── */
+.st-tabs{display:flex;border-bottom:1px solid var(--b1);margin-bottom:20px}
+.st-tab{padding:9px 16px;font-family:var(--display);font-size:12px;font-weight:600;color:var(--t3);border-bottom:2px solid transparent;cursor:pointer;transition:all .2s}
+.st-tab:hover{color:var(--t1)}
+.st-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.sp{display:none}
+.sp.active{display:block}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:22px;right:22px;z-index:9999;background:var(--s1);border:1px solid var(--b2);border-radius:9px;padding:11px 16px;font-family:var(--display);font-size:12px;font-weight:600;box-shadow:0 6px 24px rgba(0,0,0,.4);display:flex;align-items:center;gap:8px;transform:translateY(16px);opacity:0;transition:all .3s;pointer-events:none;min-width:220px}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.ok{border-color:rgba(93,212,196,.3);color:var(--teal)}
+.toast.err{border-color:rgba(200,48,96,.3);color:#f87a9a}
+
+/* ── SYNC INDICATOR ── */
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--teal);display:inline-block;margin-right:4px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.sync-offline{background:var(--red)!important;animation:none!important}
+
+/* ── RESPONSIVE ── */
+@media(max-width:1024px){:root{--sw:200px}.stats-row{grid-template-columns:repeat(3,1fr)}.dash-grid{grid-template-columns:1fr}}
+@media(max-width:768px){.sidebar{position:fixed;left:-100%;z-index:200;transition:left .3s}.sidebar.open{left:0}.stats-row{grid-template-columns:1fr 1fr}.fg{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sb-logo">
+    <div class="sb-mark">SD</div>
+    <div class="sb-name">Sukabumi Discovery<span>Admin Panel</span></div>
+  </div>
+  <div class="sb-scroll">
+    <div class="sb-sec">
+      <div class="sb-sec-label">Utama</div>
+      <div class="nav-item active" onclick="go('dashboard',this)"><span class="ni">⬡</span>Dashboard</div>
+    </div>
+    <div class="sb-sec">
+      <div class="sb-sec-label">Konten</div>
+      <div class="nav-item" onclick="go('destinations',this)"><span class="ni">🏔️</span>Destinasi<span class="nb" id="nb-d">—</span></div>
+      <div class="nav-item" onclick="go('culinary',this)"><span class="ni">🍜</span>Kuliner<span class="nb blue" id="nb-c">—</span></div>
+      <div class="nav-item" onclick="go('tours',this)"><span class="ni">🗺️</span>Day Tour</div>
+      <div class="nav-item" onclick="go('events',this)"><span class="ni">📅</span>Events<span class="nb" id="nb-e">—</span></div>
+      <div class="nav-item" onclick="go('posts',this)"><span class="ni">✍️</span>Sudut Pandang<span class="nb green" id="nb-p">—</span></div>
+      <div class="nav-item" onclick="go('stay',this)"><span class="ni">🏨</span>Akomodasi</div>
+      <div class="nav-item" onclick="go('access',this)"><span class="ni">🚌</span>Akses & Transportasi</div>
+    </div>
+    <div class="sb-sec">
+      <div class="sb-sec-label">Manajemen</div>
+      <div class="nav-item" onclick="go('users',this)"><span class="ni">👥</span>Pengguna<span class="nb" id="nb-u">—</span></div>
+    </div>
+    <div class="sb-sec">
+      <div class="sb-sec-label">Sistem</div>
+      <div class="nav-item" onclick="go('settings',this)"><span class="ni">⚙️</span>Pengaturan</div>
+    </div>
+  </div>
+  <div class="sb-footer">
+    <div class="au" onclick="doLogout()">
+      <div class="au-av" id="auAv">SA</div>
+      <div class="au-info"><strong id="auName">Admin</strong><span id="auEmail">—</span></div>
+      <span class="au-out">🚪</span>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <header class="topbar">
+    <div style="display:flex;align-items:center;gap:12px">
+      <button class="btn btn-s" id="mobileMenuBtn" onclick="document.getElementById('sidebar').classList.toggle('open')" style="display:none">☰</button>
+      <div>
+        <div class="tb-title" id="tbTitle">Dashboard</div>
+        <div class="tb-bc"><span class="sync-dot" id="syncDot"></span><span id="syncLabel">Terhubung ke Firebase</span></div>
+      </div>
+    </div>
+    <div class="tb-actions">
+      <div class="searchbar"><span style="color:var(--t3);font-size:13px">🔍</span><input placeholder="Cari konten..." oninput="globalSearch(this.value)"></div>
+      <a href="index.html" target="_blank" class="preview-link">↗ Lihat Website</a>
+      <button class="btn btn-p" onclick="openModal('quickModal')">+ Tambah</button>
+    </div>
+  </header>
+
+  <main class="content" id="mainContent">
+
+    <!-- DASHBOARD -->
+    <div class="panel active" id="p-dashboard">
+      <div class="stats-row" id="statsRow"></div>
+      <div class="qa-grid">
+        <button class="qa" onclick="go('destinations',null);openDestModal()"><span class="qa-icon">🏔️</span><span class="qa-label">Tambah Destinasi</span><span class="qa-sub">Wisata alam, heritage, pantai</span></button>
+        <button class="qa" onclick="go('events',null);openEventModal()"><span class="qa-icon">📅</span><span class="qa-label">Tambah Event</span><span class="qa-sub">Festival, pasar, kompetisi</span></button>
+        <button class="qa" onclick="go('culinary',null);openCulModal()"><span class="qa-icon">🍜</span><span class="qa-label">Tambah Kuliner</span><span class="qa-sub">Warung, kafe, street food</span></button>
+        <button class="qa" onclick="go('posts',null)"><span class="qa-icon">✍️</span><span class="qa-label">Kelola Post</span><span class="qa-sub">Moderasi komunitas</span></button>
+      </div>
+      <div class="dash-grid">
+        <div>
+          <div class="tc">
+            <div class="tc-hd"><div class="tc-title">Aktivitas & Statistik Realtime</div></div>
+            <div id="actFeed"></div>
+          </div>
+        </div>
+        <div>
+          <div class="tc" style="margin-bottom:14px">
+            <div class="tc-hd"><div class="tc-title">Grafik Konten</div></div>
+            <div style="padding:14px 16px"><div id="chart"></div></div>
+          </div>
+          <div class="tc">
+            <div class="tc-hd"><div class="tc-title">Pengaturan Cepat</div></div>
+            <div style="padding:4px 16px">
+              <div class="tr-row"><div><div class="tr-lbl">Mode Maintenance</div><div class="tr-sub">Website offline untuk pengunjung</div></div><label class="toggle"><input type="checkbox" id="tog-maintenance" onchange="DB.saveSetting('maintenance',this.checked)"><span class="ts"></span></label></div>
+              <div class="tr-row"><div><div class="tr-lbl">Moderasi Post</div><div class="tr-sub">Post butuh approve sebelum tampil</div></div><label class="toggle"><input type="checkbox" id="tog-mod" onchange="DB.saveSetting('moderation',this.checked)"><span class="ts"></span></label></div>
+              <div class="tr-row"><div><div class="tr-lbl">Registrasi Aktif</div><div class="tr-sub">Izinkan pengguna baru daftar</div></div><label class="toggle"><input type="checkbox" id="tog-reg" checked onchange="DB.saveSetting('registration',this.checked)"><span class="ts"></span></label></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DESTINATIONS -->
+    <div class="panel" id="p-destinations">
+      <div class="tc">
+        <div class="tc-hd">
+          <div class="tc-title">Manajemen Destinasi <span style="font-family:var(--mono);font-size:10px;color:var(--t3)" id="dest-count"></span></div>
+          <div class="tc-acts">
+            <input class="filter-input" placeholder="Cari destinasi..." oninput="filterRows('dest-tbody',this.value)">
+            <button class="btn btn-p" onclick="openDestModal()">+ Tambah Destinasi</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table><thead><tr><th>Destinasi</th><th>Kategori</th><th>Lokasi</th><th>Rating</th><th>Status</th><th style="text-align:right">Aksi</th></tr></thead>
+          <tbody id="dest-tbody"><tr><td colspan="6" style="text-align:center;padding:30px;color:var(--t3)">Memuat data dari Firebase...</td></tr></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- CULINARY -->
+    <div class="panel" id="p-culinary">
+      <div class="tc">
+        <div class="tc-hd">
+          <div class="tc-title">Manajemen Kuliner</div>
+          <div class="tc-acts">
+            <select class="filter-sel" onchange="filterByVal('cul-tbody',this.value)"><option value="">Semua Tipe</option><option>Jajakan Tepi Rasa</option><option>Coffee Shop</option><option>Restaurant</option><option>Street Food</option></select>
+            <button class="btn btn-p" onclick="openCulModal()">+ Tambah Kuliner</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table><thead><tr><th>Nama</th><th>Tipe</th><th>Lokasi</th><th>Harga</th><th>Status</th><th style="text-align:right">Aksi</th></tr></thead>
+          <tbody id="cul-tbody"><tr><td colspan="6" style="text-align:center;padding:30px;color:var(--t3)">Memuat...</td></tr></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOURS -->
+    <div class="panel" id="p-tours">
+      <div class="tc">
+        <div class="tc-hd">
+          <div class="tc-title">Manajemen Day Tour & Itinerary</div>
+          <div class="tc-acts"><button class="btn btn-p" onclick="openTourModal()">+ Tambah Itinerary</button></div>
+        </div>
+        <div style="overflow-x:auto">
+          <table><thead><tr><th>Nama</th><th>Durasi</th><th>Tema</th><th>Stops</th><th>Status</th><th style="text-align:right">Aksi</th></tr></thead>
+          <tbody id="tour-tbody"><tr><td colspan="6" style="text-align:center;padding:30px;color:var(--t3)">Memuat...</td></tr></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- EVENTS -->
+    <div class="panel" id="p-events">
+      <div class="tc">
+        <div class="tc-hd">
+          <div class="tc-title">Manajemen Events</div>
+          <div class="tc-acts"><button class="btn btn-p" onclick="openEventModal()">+ Tambah Event</button></div>
+        </div>
+        <div style="overflow-x:auto">
+          <table><thead><tr><th>Event</th><th>Tanggal</th><th>Tipe</th><th>Lokasi</th><th>Tiket</th><th>Status</th><th style="text-align:right">Aksi</th></tr></thead>
+          <tbody id="event-tbody"><tr><td colspan="7" style="text-align:center;padding:30px;color:var(--t3)">Memuat...</td></tr></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- POSTS -->
+    <div class="panel" id="p-posts">
+      <div class="tc">
+        <div class="tc-hd">
+          <div class="tc-title">Postingan Komunitas — Sudut Pandang</div>
+          <div class="tc-acts">
+            <select class="filter-sel" onchange="filterByVal('post-tbody',this.value)"><option value="">Semua</option><option>Visual Story</option><option>Kuliner</option><option>Alam</option><option>Trip Report</option><option>Fotografi</option></select>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table><thead><tr><th>Judul</th><th>Penulis</th><th>Kategori</th><th>Views</th><th>Likes</th><th>Tanggal</th><th style="text-align:right">Aksi</th></tr></thead>
+          <tbody id="post-tbody"><tr><td colspan="7" style="text-align:center;padding:30px;color:var(--t3)">Memuat...</td></tr></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- STAY -->
+    <div class="panel" id="p-stay">
+      <div class="tc">
+        <div class="tc-hd">
+          <div class="tc-title">Manajemen Akomodasi</div>
+          <div class="tc-acts"><button class="btn btn-p" onclick="openStayModal()">+ Tambah Akomodasi</button></div>
+        </div>
+        <div style="overflow-x:auto">
+          <table><thead><tr><th>Nama</th><th>Tipe</th><th>Lokasi</th><th>Harga/malam</th><th>Rating</th><th>Status</th><th style="text-align:right">Aksi</th></tr></thead>
+          <tbody id="stay-tbody"><tr><td colspan="7" style="text-align:center;padding:30px;color:var(--t3)">Memuat...</td></tr></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div class="panel" id="p-users">
+      <div class="tc">
+        <div class="tc-hd">
+          <div class="tc-title">Pengguna Terdaftar</div>
+          <div class="tc-acts"><input class="filter-input" placeholder="Cari pengguna..." oninput="filterRows('user-tbody',this.value)"></div>
+        </div>
+        <div style="overflow-x:auto">
+          <table><thead><tr><th>Pengguna</th><th>Email</th><th>Asal Kota</th><th>Bergabung</th><th style="text-align:right">Aksi</th></tr></thead>
+          <tbody id="user-tbody"><tr><td colspan="5" style="text-align:center;padding:30px;color:var(--t3)">Memuat...</td></tr></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACCESS -->
+    <div class="panel" id="p-access">
+      <div class="tc" style="margin-bottom:18px">
+        <div class="tc-hd">
+          <div class="tc-title">Panduan Transportasi & Akses</div>
+          <div class="tc-acts"><button class="btn btn-p" onclick="openAccessModal()">+ Tambah Rute</button></div>
+        </div>
+        <div style="overflow-x:auto">
+          <table><thead><tr><th>Mode Transportasi</th><th>Rute / Info</th><th>Jadwal</th><th>Harga</th><th>Status</th><th style="text-align:right">Aksi</th></tr></thead>
+          <tbody id="access-tbody"><tr><td colspan="6" style="text-align:center;padding:30px;color:var(--t3)">Memuat...</td></tr></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="panel" id="p-settings">
+      <div class="st-tabs">
+        <div class="st-tab active" onclick="switchST(this,'general')">General</div>
+        <div class="st-tab" onclick="switchST(this,'seo')">SEO</div>
+        <div class="st-tab" onclick="switchST(this,'data')">Data & Export</div>
+        <div class="st-tab" onclick="switchST(this,'seed')">Setup / Seed</div>
+      </div>
+      <div class="sp active" id="st-general">
+        <div class="tc">
+          <div class="tc-hd"><div class="tc-title">Pengaturan Website</div></div>
+          <div style="padding:18px">
+            <div class="fg"><div class="fr"><label>Nama Website</label><input id="cfg-name" value="Sukabumi Discovery"></div><div class="fr"><label>Tagline</label><input id="cfg-tagline" value="One Stop Tourism Provider"></div></div>
+            <div class="fr"><label>Deskripsi</label><textarea id="cfg-desc" rows="2">One stop platform untuk menemukan dan merasakan Sukabumi sepenuhnya.</textarea></div>
+            <div class="fg"><div class="fr"><label>Email Kontak</label><input id="cfg-email" type="email" value="hello@sukabumidiscovery.com"></div><div class="fr"><label>Instagram URL</label><input id="cfg-ig" value="https://instagram.com/sukabumidiscovery"></div></div>
+            <button class="btn btn-p" onclick="saveSiteConfig()">Simpan ke Firebase</button>
+          </div>
+        </div>
+
+        <!-- HEADER IMAGES PANEL -->
+        <div class="tc" style="margin-top:18px">
+          <div class="tc-hd">
+            <div class="tc-title">🖼 Foto Header Per Halaman</div>
+            <div style="font-size:11px;color:var(--t3)">Foto background untuk header setiap halaman. Paste URL atau upload.</div>
+          </div>
+          <div style="padding:18px;display:flex;flex-direction:column;gap:20px" id="headerImagesForm">
+            <!-- rendered by JS -->
+            <div style="text-align:center;padding:20px;color:var(--t3);font-size:12px">Memuat...</div>
+          </div>
+          <div style="padding:14px 18px;border-top:1px solid var(--b1)">
+            <button class="btn btn-p" onclick="saveHeaderImages()">💾 Simpan Semua Foto Header</button>
+          </div>
+        </div>
+
+        <div class="tc" style="margin-top:18px">
+          <div class="tc-hd"><div class="tc-title">Fitur Website</div></div>
+          <div style="padding:4px 16px">
+            <div class="tr-row"><div><div class="tr-lbl">Registrasi Pengguna</div><div class="tr-sub">Izinkan pendaftaran akun baru</div></div><label class="toggle"><input type="checkbox" checked onchange="DB.saveSetting('registration',this.checked)"><span class="ts"></span></label></div>
+            <div class="tr-row"><div><div class="tr-lbl">Fitur Komunitas</div><div class="tr-sub">Tampilkan halaman Sudut Pandang</div></div><label class="toggle"><input type="checkbox" checked onchange="DB.saveSetting('community',this.checked)"><span class="ts"></span></label></div>
+            <div class="tr-row"><div><div class="tr-lbl">Peta Interaktif</div><div class="tr-sub">Aktifkan halaman map.html</div></div><label class="toggle"><input type="checkbox" checked onchange="DB.saveSetting('map',this.checked)"><span class="ts"></span></label></div>
+          </div>
+        </div>
+      </div>
+      <div class="sp" id="st-seo">
+        <div class="tc">
+          <div class="tc-hd"><div class="tc-title">SEO & Meta Tags</div></div>
+          <div style="padding:18px">
+            <div class="fr"><label>Meta Title</label><input value="Sukabumi Discovery — One Stop Tourism Provider"></div>
+            <div class="fr"><label>Meta Description</label><textarea rows="2">Temukan semua yang terbaik dari Sukabumi dalam satu platform.</textarea></div>
+            <div class="fr"><label>Keywords</label><input value="sukabumi, wisata sukabumi, geopark ciletuh, kuliner sukabumi"></div>
+            <button class="btn btn-p" onclick="toast('SEO settings disimpan!','ok')">Simpan SEO</button>
+          </div>
+        </div>
+      </div>
+      <div class="sp" id="st-data">
+        <div class="tc">
+          <div class="tc-hd"><div class="tc-title">Export Data dari Firebase</div></div>
+          <div style="padding:16px;display:flex;flex-direction:column;gap:10px">
+            ${['destinations','events','culinary','tours','stay','posts'].map(k => `
+              <div style="background:var(--bg);border:1px solid var(--b2);border-radius:8px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center">
+                <div><div style="font-weight:600;font-size:12px">${k.charAt(0).toUpperCase()+k.slice(1)}</div><div style="font-size:11px;color:var(--t3)">Export sebagai JSON dari Firebase</div></div>
+                <button class="btn btn-s btn-sm" onclick="exportData('${k}')">⬇ JSON</button>
+              </div>
+            `).join('')}
+            <div style="background:rgba(200,48,96,.07);border:1px solid rgba(200,48,96,.2);border-radius:8px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center">
+              <div><div style="font-weight:600;font-size:12px;color:#f87a9a">Hapus Semua User Posts</div><div style="font-size:11px;color:var(--t3)">⚠️ Hapus semua postingan komunitas. Tidak bisa dibatalkan.</div></div>
+              <button class="btn btn-d btn-sm" onclick="confirmAction('Hapus semua postingan komunitas?',()=>DB.set('posts',null).then(()=>toast('Posts dihapus.','ok')))">Hapus Posts</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="sp" id="st-seed">
+        <div class="tc">
+          <div class="tc-hd"><div class="tc-title">Setup Firebase — Seed Data Default</div></div>
+          <div style="padding:18px">
+            <p style="font-size:13px;color:var(--t2);line-height:1.7;margin-bottom:16px">Jika baru pertama kali setup, klik tombol di bawah untuk mengisi Firebase dengan data default (6 destinasi, 3 events, kuliner, tours, stay, posts).<br><br>⚠️ Jangan klik jika data sudah ada — akan dilewati otomatis.</p>
+            <button class="btn btn-p" onclick="runSeed()">🌱 Seed Data Default ke Firebase</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- MODALS -->
+
+<!-- Destination Modal -->
+<div class="mo" id="destModal">
+  <div class="mb wide">
+    <div class="mh"><div class="mh-title" id="destMT">Tambah Destinasi</div><button class="mc" onclick="closeModal('destModal')">✕</button></div>
+    <div class="mbody">
+      <input type="hidden" id="d-key">
+      <div class="fg">
+        <div class="fr"><label>Nama Destinasi *</label><input id="d-name" placeholder="Geopark Ciletuh"></div>
+        <div class="fr"><label>Emoji Cover</label><input id="d-emoji" placeholder="🏞️" style="font-size:18px"></div>
+      </div>
+      <div class="fg">
+        <div class="fr"><label>Kategori</label><select id="d-cat"><option>Alam / Geopark</option><option>Pantai</option><option>Hiking / Gunung</option><option>Heritage / Budaya</option><option>Foto / Sightseeing</option><option>Air Terjun</option></select></div>
+        <div class="fr"><label>Status</label><select id="d-status"><option value="published">Published</option><option value="draft">Draft</option><option value="archived">Archived</option></select></div>
+      </div>
+      <div class="fr"><label>Lokasi</label><input id="d-loc" placeholder="Ciletuh-Palabuhanratu, Kab. Sukabumi"></div>
+      <div class="fg">
+        <div class="fr"><label>Rating</label><input id="d-rating" type="number" min="1" max="5" step="0.1" placeholder="4.9"></div>
+        <div class="fr"><label>Warna BG</label><select id="d-color"><option value="bg-teal">Teal</option><option value="bg-blue">Blue</option><option value="bg-orange">Orange</option><option value="bg-red">Red</option><option value="bg-yellow">Yellow</option><option value="bg-dark">Dark</option></select></div>
+      </div>
+      <div class="fr"><label>Deskripsi Pendek (untuk card)</label><input id="d-short" placeholder="UNESCO Global Geopark..."></div>
+      <div class="fr"><label>Deskripsi Lengkap</label><textarea id="d-full" rows="4" placeholder="Deskripsi detail destinasi..."></textarea></div>
+      <div class="fg">
+        <div class="fr"><label>Jam Buka</label><input id="d-jam" placeholder="07:00–17:00"></div>
+        <div class="fr"><label>Harga Tiket</label><input id="d-tiket" placeholder="Rp 10.000"></div>
+      </div>
+      <div class="fg">
+        <div class="fr"><label>Latitude</label><input id="d-lat" type="number" step="0.0001" placeholder="-7.0994"></div>
+        <div class="fr"><label>Longitude</label><input id="d-lng" type="number" step="0.0001" placeholder="106.4697"></div>
+      </div>
+      <div class="fr"><label>Tips (baris per tips)</label><textarea id="d-tips" rows="3" placeholder="Datang pagi hari&#10;Bawa sunscreen&#10;Bawa uang tunai"></textarea></div>
+      <div class="fr">
+        <label>🖼 Gambar (Upload atau URL)</label>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+          <input id="d-imageUrl" placeholder="https://... atau upload file di bawah" style="flex:1;padding:9px 12px;background:var(--bg);border:1px solid var(--b2);border-radius:7px;color:var(--t1);font-size:12px;outline:none">
+        </div>
+        <input type="file" id="d-imageFile" accept="image/*" style="font-size:11px;color:var(--t2)" onchange="previewImg('d-imageUrl','d-imagePreview',this)">
+        <div id="d-imagePreview" style="margin-top:8px;display:none"><img style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;border:1px solid var(--b2)"></div>
+        <div class="fr-hint">Upload foto ke Firebase Storage atau paste URL dari imgbb/Google Drive/hosting lain.</div>
+      </div>
+      <div class="fr">
+        <label>🖼 Galeri Foto (URL, pisahkan koma)</label>
+        <textarea id="d-gallery" rows="2" placeholder="https://foto1.jpg, https://foto2.jpg, https://foto3.jpg"></textarea>
+        <div class="fr-hint">Foto galeri untuk halaman detail destinasi. Pakai <a href="https://imgbb.com" target="_blank" style="color:var(--teal)">imgbb.com</a> untuk hosting gratis.</div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-s" onclick="closeModal('destModal')">Batal</button>
+      <button class="btn btn-p" id="destSaveBtn" onclick="saveDest()">Simpan ke Firebase ↗</button>
+    </div>
+  </div>
+</div>
+
+<!-- Event Modal -->
+<div class="mo" id="eventModal">
+  <div class="mb">
+    <div class="mh"><div class="mh-title" id="eventMT">Tambah Event</div><button class="mc" onclick="closeModal('eventModal')">✕</button></div>
+    <div class="mbody">
+      <input type="hidden" id="ev-key">
+      <div class="fr"><label>Nama Event *</label><input id="ev-name" placeholder="Festival Kuliner Sukabumi 2026"></div>
+      <div class="fg">
+        <div class="fr"><label>Tanggal</label><input id="ev-date" type="date"></div>
+        <div class="fr"><label>Tipe</label><select id="ev-type"><option>Festival</option><option>Outdoor</option><option>Pasar</option><option>Seni & Budaya</option><option>Sport</option><option>Musik</option><option>Kompetisi</option></select></div>
+      </div>
+      <div class="fg">
+        <div class="fr"><label>Jam Mulai</label><input id="ev-start" placeholder="09:00"></div>
+        <div class="fr"><label>Jam Selesai</label><input id="ev-end" placeholder="22:00"></div>
+      </div>
+      <div class="fr"><label>Lokasi</label><input id="ev-loc" placeholder="Alun-alun Kota Sukabumi"></div>
+      <div class="fr"><label>Deskripsi</label><textarea id="ev-desc" placeholder="Deskripsi event..."></textarea></div>
+      <div class="fg">
+        <div class="fr"><label>Harga Tiket</label><input id="ev-ticket" placeholder="Gratis / Rp 75.000"></div>
+        <div class="fr"><label>Status</label><select id="ev-status"><option value="published">Published</option><option value="draft">Draft</option></select></div>
+      </div>
+      <div class="fr">
+        <label>🖼 Gambar (Upload atau URL)</label>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+          <input id="ev-imageUrl" placeholder="https://... atau upload file di bawah" style="flex:1;padding:9px 12px;background:var(--bg);border:1px solid var(--b2);border-radius:7px;color:var(--t1);font-size:12px;outline:none">
+        </div>
+        <input type="file" id="ev-imageFile" accept="image/*" style="font-size:11px;color:var(--t2)" onchange="previewImg('ev-imageUrl','ev-imagePreview',this)">
+        <div id="ev-imagePreview" style="margin-top:8px;display:none"><img style="width:100%;max-height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--b2)"></div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-s" onclick="closeModal('eventModal')">Batal</button>
+      <button class="btn btn-p" id="eventSaveBtn" onclick="saveEvent()">Simpan ke Firebase ↗</button>
+    </div>
+  </div>
+</div>
+
+<!-- Culinary Modal -->
+<div class="mo" id="culModal">
+  <div class="mb">
+    <div class="mh"><div class="mh-title" id="culMT">Tambah Kuliner</div><button class="mc" onclick="closeModal('culModal')">✕</button></div>
+    <div class="mbody">
+      <input type="hidden" id="cu-key">
+      <div class="fg">
+        <div class="fr"><label>Nama *</label><input id="cu-name" placeholder="Soto Mie Ade Lela"></div>
+        <div class="fr"><label>Emoji</label><input id="cu-emoji" placeholder="🍜"></div>
+      </div>
+      <div class="fg">
+        <div class="fr"><label>Tipe</label><select id="cu-type"><option>Jajakan Tepi Rasa</option><option>Coffee Shop</option><option>Restaurant</option><option>Street Food</option><option>Pasar</option></select></div>
+        <div class="fr"><label>Warna</label><select id="cu-color"><option value="bg-orange">Orange</option><option value="bg-teal">Teal</option><option value="bg-blue">Blue</option><option value="bg-red">Red</option><option value="bg-yellow">Yellow</option><option value="bg-dark">Dark</option></select></div>
+      </div>
+      <div class="fr"><label>Lokasi</label><input id="cu-loc" placeholder="Jl. Pertanian, depan kantor pos"></div>
+      <div class="fg">
+        <div class="fr"><label>Latitude (opsional)</label><input id="cu-lat" type="number" step="0.0001" placeholder="-6.9218"></div>
+        <div class="fr"><label>Longitude (opsional)</label><input id="cu-lng" type="number" step="0.0001" placeholder="106.9292"></div>
+      </div>
+      <div class="fr"><label>Deskripsi Singkat</label><textarea id="cu-desc" placeholder="Deskripsi kuliner..."></textarea></div>
+      <div class="fr"><label>Deskripsi Lengkap (untuk halaman detail)</label><textarea id="cu-descFull" rows="3" placeholder="Cerita lengkap tentang tempat ini..."></textarea></div>
+      <div class="fg">
+        <div class="fr"><label>Jam Buka</label><input id="cu-jam" placeholder="07:00–22:00"></div>
+        <div class="fr"><label>Harga</label><input id="cu-price" placeholder="Rp 15.000 – 25.000"></div>
+      </div>
+      <div class="fr"><label>Tips (satu baris per tips)</label><textarea id="cu-tips" rows="2" placeholder="Datang pagi agar tidak antri&#10;Coba menu andalan..."></textarea></div>
+      <div class="fg">
+        <div class="fr"><label>Status</label><select id="cu-status"><option value="published">Published</option><option value="draft">Draft</option></select></div>
+      </div>
+      <div class="fr">
+        <label>🖼 Foto Utama (Upload atau URL)</label>
+        <input id="cu-imageUrl" placeholder="https://... atau upload" style="width:100%;padding:9px 12px;background:var(--bg);border:1px solid var(--b2);border-radius:7px;color:var(--t1);font-size:12px;outline:none;margin-bottom:6px">
+        <input type="file" id="cu-imageFile" accept="image/*" style="font-size:11px;color:var(--t2)" onchange="previewImg('cu-imageUrl','cu-imagePreview',this)">
+        <div id="cu-imagePreview" style="margin-top:8px;display:none"><img style="width:100%;max-height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--b2)"></div>
+      </div>
+      <div class="fr">
+        <label>🖼 Galeri Foto (URL, pisahkan koma)</label>
+        <textarea id="cu-gallery" rows="2" placeholder="https://foto1.jpg, https://foto2.jpg"></textarea>
+        <div class="fr-hint">Pakai <a href="https://imgbb.com" target="_blank" style="color:var(--teal)">imgbb.com</a> untuk hosting foto gratis. Paste URL dipisah koma.</div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-s" onclick="closeModal('culModal')">Batal</button>
+      <button class="btn btn-p" id="culSaveBtn" onclick="saveCul()">Simpan ke Firebase ↗</button>
+    </div>
+  </div>
+</div>
+
+<!-- Tour Modal -->
+<div class="mo" id="tourModal">
+  <div class="mb wide">
+    <div class="mh"><div class="mh-title" id="tourMT">Tambah Itinerary</div><button class="mc" onclick="closeModal('tourModal')">✕</button></div>
+    <div class="mbody">
+      <input type="hidden" id="t-key">
+      <div class="fg">
+        <div class="fr"><label>Nama Tour *</label><input id="t-name" placeholder="Ciletuh One Day Trip"></div>
+        <div class="fr"><label>Durasi</label><select id="t-dur"><option>1 Hari</option><option>2 Hari</option><option>3 Hari</option></select></div>
+      </div>
+      <div class="fg">
+        <div class="fr"><label>Tema</label><select id="t-theme"><option>Alam</option><option>Kuliner</option><option>Budaya</option><option>Hiking</option><option>Road Trip</option><option>Pantai</option></select></div>
+        <div class="fr"><label>Warna Header</label><select id="t-color"><option value="bg-teal">Teal</option><option value="bg-orange">Orange</option><option value="bg-red">Red</option><option value="bg-blue">Blue</option><option value="bg-dark">Dark</option><option value="bg-yellow">Yellow</option></select></div>
+      </div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Stops / Itinerary</div>
+      <div id="stopList"></div>
+      <button class="btn btn-s btn-sm" style="margin-top:6px" onclick="addStop()">+ Tambah Stop</button>
+      <div class="fr" style="margin-top:12px"><label>Status</label><select id="t-status"><option value="published">Published</option><option value="draft">Draft</option></select></div>
+      <div class="fr">
+        <label>🖼 Gambar Cover (Upload atau URL)</label>
+        <input id="t-imageUrl" placeholder="https://... atau upload file" style="width:100%;padding:9px 12px;background:var(--bg);border:1px solid var(--b2);border-radius:7px;color:var(--t1);font-size:12px;outline:none;margin-bottom:6px">
+        <input type="file" id="t-imageFile" accept="image/*" style="font-size:11px;color:var(--t2)" onchange="previewImg('t-imageUrl','t-imagePreview',this)">
+        <div id="t-imagePreview" style="margin-top:8px;display:none"><img style="width:100%;max-height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--b2)"></div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-s" onclick="closeModal('tourModal')">Batal</button>
+      <button class="btn btn-p" id="tourSaveBtn" onclick="saveTour()">Simpan ke Firebase ↗</button>
+    </div>
+  </div>
+</div>
+
+<!-- Stay Modal -->
+<div class="mo" id="stayModal">
+  <div class="mb">
+    <div class="mh"><div class="mh-title" id="stayMT">Tambah Akomodasi</div><button class="mc" onclick="closeModal('stayModal')">✕</button></div>
+    <div class="mbody">
+      <input type="hidden" id="st-key">
+      <div class="fg">
+        <div class="fr"><label>Nama *</label><input id="st-name" placeholder="Grand Inna Samudra"></div>
+        <div class="fr"><label>Emoji</label><input id="st-emoji" placeholder="🏨"></div>
+      </div>
+      <div class="fg">
+        <div class="fr"><label>Tipe</label><select id="st-type"><option>Hotel Berbintang</option><option>Villa & Penginapan Alam</option><option>Homestay</option><option>Camping</option><option>Glamping</option></select></div>
+        <div class="fr"><label>Harga/malam (Rp)</label><input id="st-price" type="number" placeholder="650000"></div>
+      </div>
+      <div class="fg">
+        <div class="fr"><label>Lokasi</label><input id="st-loc" placeholder="Palabuhanratu"></div>
+        <div class="fr"><label>Rating</label><input id="st-rating" type="number" min="1" max="5" step="0.1" placeholder="4.6"></div>
+      </div>
+      <div class="fr"><label>Deskripsi</label><textarea id="st-desc" placeholder="Deskripsi penginapan..."></textarea></div>
+      <div class="fg">
+        <div class="fr"><label>Latitude (opsional)</label><input id="st-lat" type="number" step="0.0001" placeholder="-6.9780"></div>
+        <div class="fr"><label>Longitude (opsional)</label><input id="st-lng" type="number" step="0.0001" placeholder="106.5560"></div>
+      </div>
+      <div class="fr"><label>Fasilitas (pisahkan koma)</label><input id="st-amenities" placeholder="Pool, Restaurant, WiFi"></div>
+      <div class="fg">
+        <div class="fr"><label>Jam Check-in/out</label><input id="st-jam" placeholder="Check-in 14:00, Check-out 12:00"></div>
+        <div class="fr"><label>Status</label><select id="st-status"><option value="published">Published</option><option value="draft">Draft</option></select></div>
+      </div>
+      <div class="fr"><label>Catatan & Tips (opsional)</label><textarea id="st-notes" rows="2" placeholder="Booking jauh-jauh hari untuk weekend..."></textarea></div>
+      <div class="fr">
+        <label>🖼 Foto Utama (Upload atau URL)</label>
+        <input id="st-imageUrl" placeholder="https://... atau upload" style="width:100%;padding:9px 12px;background:var(--bg);border:1px solid var(--b2);border-radius:7px;color:var(--t1);font-size:12px;outline:none;margin-bottom:6px">
+        <input type="file" id="st-imageFile" accept="image/*" style="font-size:11px;color:var(--t2)" onchange="previewImg('st-imageUrl','st-imagePreview',this)">
+        <div id="st-imagePreview" style="margin-top:8px;display:none"><img style="width:100%;max-height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--b2)"></div>
+      </div>
+      <div class="fr">
+        <label>🖼 Galeri Foto (URL, pisahkan koma)</label>
+        <textarea id="st-gallery" rows="2" placeholder="https://foto1.jpg, https://foto2.jpg, https://foto3.jpg"></textarea>
+        <div class="fr-hint">Foto pertama = foto utama card. Bisa paste banyak URL dipisah koma. Atau gunakan imgbb.com untuk hosting foto gratis.</div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-s" onclick="closeModal('stayModal')">Batal</button>
+      <button class="btn btn-p" id="staySaveBtn" onclick="saveStay()">Simpan ke Firebase ↗</button>
+    </div>
+  </div>
+</div>
+
+<!-- Access Modal -->
+<div class="mo" id="accessModal">
+  <div class="mb">
+    <div class="mh"><div class="mh-title" id="accessMT">Tambah Rute Transportasi</div><button class="mc" onclick="closeModal('accessModal')">✕</button></div>
+    <div class="mbody">
+      <input type="hidden" id="ac-key">
+      <div class="fg">
+        <div class="fr"><label>Mode Transportasi *</label>
+          <select id="ac-mode">
+            <option>Bus</option><option>Kereta</option><option>Angkot</option>
+            <option>Shuttle / Travel</option><option>Colt / Minibus</option><option>Ojek Online</option>
+          </select>
+        </div>
+        <div class="fr"><label>Nama / Rute *</label><input id="ac-name" placeholder="Bus Damri Jakarta–Sukabumi"></div>
+      </div>
+      <div class="fg">
+        <div class="fr"><label>Dari</label><input id="ac-from" placeholder="Terminal Kampung Rambutan"></div>
+        <div class="fr"><label>Ke</label><input id="ac-to" placeholder="Terminal Sukabumi"></div>
+      </div>
+      <div class="fg">
+        <div class="fr"><label>Jadwal / Frekuensi</label><input id="ac-schedule" placeholder="06:00–22:00, tiap 30 menit"></div>
+        <div class="fr"><label>Durasi Perjalanan</label><input id="ac-duration" placeholder="±3 jam"></div>
+      </div>
+      <div class="fg">
+        <div class="fr"><label>Harga</label><input id="ac-price" placeholder="Rp 35.000"></div>
+        <div class="fr"><label>Status</label><select id="ac-status"><option value="published">Published</option><option value="draft">Draft</option></select></div>
+      </div>
+      <div class="fr"><label>Info Tambahan</label><textarea id="ac-info" rows="3" placeholder="Naik dari pintu 3A Terminal Pulogadung. Ada AC. Bagasi dikenakan biaya tambahan."></textarea></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-s" onclick="closeModal('accessModal')">Batal</button>
+      <button class="btn btn-p" id="accessSaveBtn" onclick="saveAccess()">Simpan ke Firebase ↗</button>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Add Modal -->
+<div class="mo" id="quickModal">
+  <div class="mb" style="max-width:380px">
+    <div class="mh"><div class="mh-title">Tambah Konten Baru</div><button class="mc" onclick="closeModal('quickModal')">✕</button></div>
+    <div class="mbody" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button class="qa" onclick="closeModal('quickModal');go('destinations',null);openDestModal()"><span class="qa-icon">🏔️</span><span class="qa-label">Destinasi</span></button>
+      <button class="qa" onclick="closeModal('quickModal');go('events',null);openEventModal()"><span class="qa-icon">📅</span><span class="qa-label">Event</span></button>
+      <button class="qa" onclick="closeModal('quickModal');go('culinary',null);openCulModal()"><span class="qa-icon">🍜</span><span class="qa-label">Kuliner</span></button>
+      <button class="qa" onclick="closeModal('quickModal');go('tours',null);openTourModal()"><span class="qa-icon">🗺️</span><span class="qa-label">Day Tour</span></button>
+      <button class="qa" onclick="closeModal('quickModal');go('stay',null);openStayModal()"><span class="qa-icon">🏨</span><span class="qa-label">Akomodasi</span></button>
+      <button class="qa" onclick="closeModal('quickModal');go('posts',null)"><span class="qa-icon">✍️</span><span class="qa-label">Kelola Post</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div class="mo" id="confirmModal">
+  <div class="mb" style="max-width:340px">
+    <div class="mh"><div class="mh-title">Konfirmasi</div><button class="mc" onclick="closeModal('confirmModal')">✕</button></div>
+    <div class="mbody"><p id="confirmMsg" style="font-size:13px;color:var(--t2);line-height:1.6"></p></div>
+    <div class="mfoot"><button class="btn btn-s" onclick="closeModal('confirmModal')">Batal</button><button class="btn btn-d" id="confirmOk">Lanjutkan</button></div>
+  </div>
+</div>
+
+<div class="toast" id="adminToast"><span id="toastIcon"></span><span id="toastMsg"></span></div>
+
+<script>
+/* ============================================================
+   ADMIN EMAILS WHITELIST
+============================================================ */
+const ADMIN_EMAILS = [
+  'admin@sukabumidiscovery.com',
+  'akmal@sukabumidiscovery.com',
+  // tambah email admin lain di sini
+];
+
+/* ============================================================
+   AUTH CHECK — guard page
+============================================================ */
+firebase.auth().onAuthStateChanged(async (user) => {
+  if (!user || !ADMIN_EMAILS.includes(user.email)) {
+    window.location.href = 'admin-login.html';
+    return;
+  }
+  // Logged in as admin
+  document.getElementById('auAv').textContent = user.displayName?.slice(0,2).toUpperCase() || user.email.slice(0,2).toUpperCase();
+  document.getElementById('auName').textContent = user.displayName || user.email;
+  document.getElementById('auEmail').textContent = user.email;
+
+  // Init realtime listeners — they will trigger renderDashboard automatically when data arrives
+  initRealtimeListeners();
+  // Seed default data only if Firebase is empty (non-blocking)
+  seedDefaultData();
+});
+
+function doLogout() {
+  firebase.auth().signOut().then(() => window.location.href = 'admin-login.html');
+}
+
+/* ============================================================
+   REALTIME LISTENERS — auto-update all panels when Firebase changes
+============================================================ */
+const _cache = {};
+let _initialLoadDone = false;
+
+function initRealtimeListeners() {
+  const paths = ['destinations','events','culinary','tours','stay','access','posts','users','settings'];
+  let loadCount = 0;
+
+  paths.forEach(path => {
+    db.ref(path).on('value', snap => {
+      const val = snap.val();
+      _cache[path] = val ? Object.entries(val).map(([k,v]) => ({_key:k,...v})) : [];
+      loadCount++;
+
+      // Once all paths have loaded at least once, render dashboard
+      if (!_initialLoadDone && loadCount >= paths.length) {
+        _initialLoadDone = true;
+        updateBadges();
+        renderDashboard();
+      } else if (_initialLoadDone) {
+        // Subsequent updates — re-render whatever panel is active
+        updateBadges();
+        const active = document.querySelector('.panel.active');
+        if (active) {
+          const id = active.id.replace('p-','');
+          const renderers = { dashboard:renderDashboard, destinations:renderDests, culinary:renderCul, tours:renderTours, events:renderEvents, posts:renderPosts, stay:renderStay, users:renderUsers };
+          if (renderers[id]) renderers[id]();
+        }
+      }
+    });
+  });
+
+  // Connection status
+  db.ref('.info/connected').on('value', snap => {
+    const online = snap.val();
+    const dot = document.getElementById('syncDot');
+    const lbl = document.getElementById('syncLabel');
+    if (dot) dot.classList.toggle('sync-offline', !online);
+    if (lbl) lbl.textContent = online ? 'Terhubung ke Firebase' : 'Offline — perubahan akan disinkron saat online';
+  });
+}
+
+function getData(path) { return _cache[path] || []; }
+
+function updateBadges() {
+  const set = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+  set('nb-d', getData('destinations').length);
+  set('nb-c', getData('culinary').length);
+  set('nb-e', getData('events').length);
+  set('nb-p', getData('posts').length);
+  set('nb-u', getData('users').length);
+}
+
+/* ============================================================
+   NAVIGATION
+============================================================ */
+const TITLES = {
+  dashboard:'Dashboard', destinations:'Destinasi', culinary:'Kuliner', tours:'Day Tour',
+  events:'Events', posts:'Sudut Pandang', stay:'Akomodasi', access:'Akses & Transportasi',
+  users:'Pengguna', settings:'Pengaturan'
+};
+
+function go(id, navEl) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(`p-${id}`)?.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (navEl) navEl.classList.add('active');
+  document.getElementById('tbTitle').textContent = TITLES[id] || id;
+  document.getElementById('sidebar').classList.remove('open');
+  const renders = { dashboard:renderDashboard, destinations:renderDests, culinary:renderCul, tours:renderTours, events:renderEvents, posts:renderPosts, stay:renderStay, access:renderAccess, users:renderUsers, settings:renderSettings };
+  if (renders[id]) renders[id]();
+}
+
+/* ============================================================
+   DASHBOARD RENDER
+============================================================ */
+function renderDashboard() {
+  const d = getData('destinations');
+  const e = getData('events');
+  const c = getData('culinary');
+  const p = getData('posts');
+  const u = getData('users');
+  const t = getData('tours');
+
+  document.getElementById('statsRow').innerHTML = [
+    { lbl:'Destinasi', val:d.length, sub:`${d.filter(x=>x.status==='published').length} published`, color:'var(--teal)' },
+    { lbl:'Events', val:e.length, sub:`${e.filter(x=>x.status==='published').length} aktif`, color:'var(--accent)' },
+    { lbl:'Kuliner', val:c.length, sub:`${c.filter(x=>x.status==='published').length} published`, color:'var(--yellow)' },
+    { lbl:'Post Komunitas', val:p.length, sub:`${u.length} pengguna`, color:'var(--blue)' },
+    { lbl:'Day Tour', val:t.length, sub:`${t.filter(x=>x.status==='published').length} published`, color:'var(--red)' },
+  ].map(s => `
+    <div class="sc">
+      <div class="sc-lbl">${s.lbl}</div>
+      <div class="sc-val" style="color:${s.color}">${s.val}</div>
+      <div class="sc-sub">${s.sub}</div>
+    </div>
+  `).join('');
+
+  document.getElementById('actFeed').innerHTML = [
+    { dot:'var(--teal)', text:`<strong>${d.length} destinasi</strong> aktif di peta &amp; halaman wisata` },
+    { dot:'var(--accent)', text:`<strong>${e.filter(x=>x.status==='published').length} events</strong> sedang published` },
+    { dot:'var(--yellow)', text:`<strong>${c.length} kuliner</strong> tersedia untuk pengunjung` },
+    { dot:'var(--blue)', text:`<strong>${p.length} cerita</strong> dari komunitas Sudut Pandang` },
+  ].map(a => `
+    <div class="af-item">
+      <div class="afdot" style="background:${a.dot}"></div>
+      <div class="af-text">${a.text}</div>
+      <div class="af-time">Live</div>
+    </div>
+  `).join('');
+
+  const chartData = [
+    { l:'Dest', v:d.length, c:'var(--teal)' },
+    { l:'Event', v:e.length, c:'var(--accent)' },
+    { l:'Kul', v:c.length, c:'var(--yellow)' },
+    { l:'Post', v:p.length, c:'var(--blue)' },
+    { l:'Tour', v:t.length, c:'var(--red)' },
+    { l:'User', v:u.length, c:'#888' },
+  ];
+  const mx = Math.max(...chartData.map(x=>x.v), 1);
+  document.getElementById('chart').innerHTML = `
+    <div class="bar-chart">
+      ${chartData.map(x => `
+        <div class="bar-col">
+          <div class="bar-v">${x.v}</div>
+          <div class="bar" style="background:${x.c};height:${Math.max(x.v/mx*76,3)}px"></div>
+          <div class="bar-lbl">${x.l}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  // Load settings toggles
+  DB.getSettings().then(cfg => {
+    if (!cfg) return;
+    const set = (id, val) => { const el = document.getElementById(id); if(el) el.checked = !!val; };
+    set('tog-maintenance', cfg.maintenance);
+    set('tog-mod', cfg.moderation);
+    set('tog-reg', cfg.registration !== false);
+  });
+}
+
+/* ============================================================
+   TABLE RENDERS
+============================================================ */
+function sB(status) {
+  const m = { published:['sb-pub','Published'], draft:['sb-dft','Draft'], archived:['sb-arc','Archived'] };
+  const [cls, txt] = m[status] || ['sb-arc', status];
+  return `<span class="sb ${cls}"><span class="sb-dot"></span>${txt}</span>`;
+}
+function fmtDate(d) { if(!d) return '—'; try { return new Date(d).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}); } catch{return d;} }
+function emptyTd(cols, msg='Belum ada data') { return `<tr><td colspan="${cols}" style="text-align:center;padding:32px;color:var(--t3);font-size:12px">${msg}</td></tr>`; }
+
+function renderDests() {
+  const items = getData('destinations');
+  document.getElementById('dest-count') && (document.getElementById('dest-count').textContent = `(${items.length})`);
+  document.getElementById('dest-tbody').innerHTML = items.length ? items.map(d => `
+    <tr>
+      <td><div class="cwi"><div class="ci">${d.emoji||'🏔️'}</div><div><div class="ct">${d.name}</div><div class="cs">${d.cat||'—'}</div></div></div></td>
+      <td style="font-size:11px">${d.cat||'—'}</td>
+      <td style="font-size:11px;color:var(--t2)">📍 ${d.loc||'—'}</td>
+      <td style="font-family:var(--mono);font-size:11px">⭐ ${d.rating||'—'}</td>
+      <td>${sB(d.status)}</td>
+      <td><div class="ra"><button class="btn btn-s btn-sm" onclick="editDest('${d._key||d.id}')">Edit</button><button class="btn btn-d btn-sm" onclick="delItem('destinations','${d._key||d.id}','${d.name}')">Hapus</button></div></td>
+    </tr>
+  `).join('') : emptyTd(6);
+}
+
+function renderCul() {
+  const items = getData('culinary');
+  document.getElementById('cul-tbody').innerHTML = items.length ? items.map(c => `
+    <tr>
+      <td><div class="cwi"><div class="ci">${c.emoji||'🍽️'}</div><div><div class="ct">${c.name}</div><div class="cs">${(c.desc||'').slice(0,40)}...</div></div></div></td>
+      <td style="font-size:11px">${c.type||'—'}</td>
+      <td style="font-size:11px;color:var(--t2)">📍 ${c.loc||'—'}</td>
+      <td style="font-family:var(--mono);font-size:11px">${c.price||'—'}</td>
+      <td>${sB(c.status)}</td>
+      <td><div class="ra"><button class="btn btn-s btn-sm" onclick="editCul('${c._key||c.id}')">Edit</button><button class="btn btn-d btn-sm" onclick="delItem('culinary','${c._key||c.id}','${c.name}')">Hapus</button></div></td>
+    </tr>
+  `).join('') : emptyTd(6);
+}
+
+function renderTours() {
+  const items = getData('tours');
+  document.getElementById('tour-tbody').innerHTML = items.length ? items.map(t => `
+    <tr>
+      <td><div class="ct">${t.name}</div></td>
+      <td style="font-family:var(--mono);font-size:11px">${t.duration||'—'}</td>
+      <td style="font-size:11px">${t.theme||'—'}</td>
+      <td style="font-family:var(--mono);font-size:11px">${(t.stops||[]).length} stops</td>
+      <td>${sB(t.status)}</td>
+      <td><div class="ra"><button class="btn btn-s btn-sm" onclick="editTour('${t._key||t.id}')">Edit</button><button class="btn btn-d btn-sm" onclick="delItem('tours','${t._key||t.id}','${t.name}')">Hapus</button></div></td>
+    </tr>
+  `).join('') : emptyTd(6);
+}
+
+function renderEvents() {
+  const items = getData('events');
+  document.getElementById('event-tbody').innerHTML = items.length ? items.map(e => `
+    <tr>
+      <td><div class="ct">${e.name}</div></td>
+      <td style="font-family:var(--mono);font-size:11px">${fmtDate(e.date)}</td>
+      <td style="font-size:11px">${e.type||'—'}</td>
+      <td style="font-size:11px;color:var(--t2)">📍 ${e.loc||'—'}</td>
+      <td style="font-family:var(--mono);font-size:11px">${e.ticket||'—'}</td>
+      <td>${sB(e.status)}</td>
+      <td><div class="ra"><button class="btn btn-s btn-sm" onclick="editEvent('${e._key||e.id}')">Edit</button><button class="btn btn-d btn-sm" onclick="delItem('events','${e._key||e.id}','${e.name}')">Hapus</button></div></td>
+    </tr>
+  `).join('') : emptyTd(7);
+}
+
+function renderPosts() {
+  const items = getData('posts');
+  document.getElementById('post-tbody').innerHTML = items.length ? items.map(p => `
+    <tr>
+      <td><div class="ct">${p.emoji||''} ${p.title}</div><div class="cs">${p.category||'—'}</div></td>
+      <td style="font-size:11px">${p.author||'—'}<div class="cs">${p.authorKota||''}</div></td>
+      <td style="font-size:11px">${p.category||'—'}</td>
+      <td style="font-family:var(--mono);font-size:11px">${p.views||0}</td>
+      <td style="font-family:var(--mono);font-size:11px">${Object.keys(p.likes||{}).length}</td>
+      <td style="font-family:var(--mono);font-size:10px">${p.date||'—'}</td>
+      <td><div class="ra"><a href="sudut-pandang.html?post=${p.id||p._key}" target="_blank" class="btn btn-ok btn-sm">Lihat</a><button class="btn btn-d btn-sm" onclick="delItem('posts','${p._key||p.id}','${(p.title||'').replace(/'/g,'')}')">Hapus</button></div></td>
+    </tr>
+  `).join('') : emptyTd(7, 'Belum ada postingan dari komunitas');
+}
+
+function renderStay() {
+  const items = getData('stay');
+  document.getElementById('stay-tbody').innerHTML = items.length ? items.map(s => `
+    <tr>
+      <td><div class="cwi"><div class="ci">${s.emoji||'🏨'}</div><div><div class="ct">${s.name}</div><div class="cs">${s.type||'—'}</div></div></div></td>
+      <td style="font-size:11px">${s.type||'—'}</td>
+      <td style="font-size:11px;color:var(--t2)">📍 ${s.loc||'—'}</td>
+      <td style="font-family:var(--mono);font-size:11px">Rp ${Number(s.price||0).toLocaleString('id-ID')}</td>
+      <td style="font-family:var(--mono);font-size:11px">⭐ ${s.rating||'—'}</td>
+      <td>${sB(s.status)}</td>
+      <td><div class="ra"><button class="btn btn-s btn-sm" onclick="editStay('${s._key||s.id}')">Edit</button><button class="btn btn-d btn-sm" onclick="delItem('stay','${s._key||s.id}','${s.name}')">Hapus</button></div></td>
+    </tr>
+  `).join('') : emptyTd(7);
+}
+
+function renderUsers() {
+  const items = getData('users');
+  document.getElementById('user-tbody').innerHTML = items.length ? items.map(u => `
+    <tr>
+      <td><div class="cwi"><div class="ci" style="background:var(--blue);color:white;font-family:var(--display);font-weight:700">${u.avatar||'U'}</div><div class="ct">${u.name||'—'}</div></div></td>
+      <td style="font-family:var(--mono);font-size:10px">${u.email||'—'}</td>
+      <td style="font-size:11px">${u.kota||'—'}</td>
+      <td style="font-family:var(--mono);font-size:10px;color:var(--t3)">${u.joined ? fmtDate(u.joined.split('T')[0]) : '—'}</td>
+      <td><div class="ra"><button class="btn btn-d btn-sm" onclick="delItem('users','${u._key||u.uid}','${u.name}')">Hapus</button></div></td>
+    </tr>
+  `).join('') : emptyTd(5, 'Belum ada pengguna terdaftar. Pengguna muncul setelah daftar di website.');
+}
+
+async function renderSettings() {
+  // Load site config
+  const cfg = await DB.get('siteConfig');
+  if (cfg) {
+    const set = (id, v) => { const el=document.getElementById(id); if(el && v) el.value=v; };
+    set('cfg-name', cfg.name); set('cfg-tagline', cfg.tagline);
+    set('cfg-desc', cfg.desc); set('cfg-email', cfg.email); set('cfg-ig', cfg.ig);
+  }
+  // Load header images
+  loadHeaderImagesForm();
+}
+
+const HEADER_PAGES = [
+  { key:'home',    label:'🏠 Home — Hero Section',         hint:'Foto background hero homepage' },
+  { key:'ttd',     label:'🏔 Things To Do — Header',        hint:'Header halaman things-to-do.html' },
+  { key:'events',  label:'📅 Events — Header',              hint:'Header halaman events.html' },
+  { key:'stay',    label:'🏨 Stay — Header',                hint:'Header halaman stay.html' },
+  { key:'access',  label:'🚌 Access — Header',              hint:'Header halaman access.html' },
+  { key:'sudut',   label:'✍️ Sudut Pandang — Header',       hint:'Header halaman sudut-pandang.html' },
+];
+
+async function loadHeaderImagesForm() {
+  const saved = await DB.get('siteConfig/headerImages') || {};
+  const form = document.getElementById('headerImagesForm');
+  if (!form) return;
+
+  form.innerHTML = HEADER_PAGES.map(p => `
+    <div style="background:var(--bg);border:1px solid var(--b2);border-radius:10px;padding:14px;display:flex;gap:14px;align-items:flex-start">
+      <div style="flex:1">
+        <div style="font-family:var(--display);font-size:12px;font-weight:700;margin-bottom:3px">${p.label}</div>
+        <div style="font-size:10px;color:var(--t3);margin-bottom:8px">${p.hint}</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="hdr-${p.key}" value="${saved[p.key]||''}" placeholder="Paste URL foto atau upload →"
+            style="flex:1;padding:7px 10px;background:var(--s2);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-size:11px;outline:none"
+            oninput="updateHdrPreview('${p.key}')">
+          <label style="cursor:pointer;background:var(--s2);border:1px solid var(--b2);border-radius:6px;padding:6px 10px;font-size:10px;color:var(--t2);white-space:nowrap">
+            📁 Upload
+            <input type="file" accept="image/*" style="display:none" onchange="uploadHdrImg('${p.key}',this)">
+          </label>
+        </div>
+        <div id="hdr-prog-${p.key}" style="font-size:10px;color:var(--teal);margin-top:4px;display:none">Uploading...</div>
+      </div>
+      <div id="hdr-prev-${p.key}" style="width:80px;height:50px;border-radius:7px;border:1px solid var(--b2);overflow:hidden;flex-shrink:0;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--t3)">
+        ${saved[p.key] ? `<img src="${saved[p.key]}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentNode.innerHTML='❌'">` : 'No foto'}
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateHdrPreview(key) {
+  const url = document.getElementById(`hdr-${key}`)?.value;
+  const prev = document.getElementById(`hdr-prev-${key}`);
+  if (!prev) return;
+  prev.innerHTML = url
+    ? `<img src="${url}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentNode.innerHTML='❌ Invalid URL'">`
+    : 'No foto';
+}
+
+async function uploadHdrImg(key, input) {
+  const file = input?.files?.[0];
+  if (!file) return;
+  const prog = document.getElementById(`hdr-prog-${key}`);
+  if (prog) { prog.style.display='block'; prog.textContent='Uploading...'; }
+  try {
+    const url = await StorageHelper.uploadFile(file, 'headers', pct => {
+      if (prog) prog.textContent = `Uploading... ${pct}%`;
+    });
+    const inp = document.getElementById(`hdr-${key}`);
+    if (inp) inp.value = url;
+    updateHdrPreview(key);
+    if (prog) { prog.textContent='✅ Upload selesai!'; setTimeout(()=>prog.style.display='none', 2000); }
+  } catch(e) {
+    if (prog) { prog.textContent='❌ Upload gagal: '+e.message; }
+    toast('Upload gagal: '+e.message, 'err');
+  }
+}
+
+async function saveHeaderImages() {
+  const imgs = {};
+  HEADER_PAGES.forEach(p => {
+    const v = document.getElementById(`hdr-${p.key}`)?.value?.trim();
+    if (v) imgs[p.key] = v;
+  });
+  await DB.update('siteConfig', { headerImages: imgs });
+  toast('Foto header disimpan! Halaman website akan langsung update. ✅', 'ok');
+}
+
+/* ============================================================
+   CRUD SAVE / DELETE
+============================================================ */
+async function saveItem(path, data, key) {
+  if (key) {
+    await DB.update(`${path}/${key}`, data);
+  } else {
+    data.id = Date.now();
+    await DB.set(`${path}/${data.id}`, data);
+  }
+}
+
+function delItem(path, key, name) {
+  confirmAction(`Hapus "${name}" dari Firebase? Tidak bisa dibatalkan.`, async () => {
+    await DB.remove(`${path}/${key}`);
+    toast(`"${name}" berhasil dihapus.`, 'ok');
+  });
+}
+
+/* ── DESTINATION ── */
+function openDestModal(item=null) {
+  document.getElementById('destMT').textContent = item ? 'Edit Destinasi' : 'Tambah Destinasi';
+  const fields = { 'd-key':'_key', 'd-name':'name', 'd-emoji':'emoji', 'd-cat':'cat', 'd-status':'status', 'd-loc':'loc', 'd-rating':'rating', 'd-color':'color', 'd-short':'descShort', 'd-full':'descFull', 'd-jam':'jam', 'd-tiket':'tiket', 'd-lat':'lat', 'd-lng':'lng', 'd-tips':'tips', 'd-imageUrl':'imageUrl', 'd-gallery':'gallery' };
+  for (const [id, field] of Object.entries(fields)) {
+    const el = document.getElementById(id);
+    if (el) el.value = item?.[field] || '';
+  }
+  showImgPreview('d-imageUrl', 'd-imagePreview', item?.imageUrl);
+  clearFileInput('d-imageFile');
+  openModal('destModal');
+}
+async function saveDest() {
+  const name = document.getElementById('d-name').value.trim();
+  if (!name) { toast('Nama wajib diisi!', 'err'); return; }
+  const key = document.getElementById('d-key').value;
+  setBtnLoading('destSaveBtn', true);
+  let imageUrl = val('d-imageUrl') || '';
+  const fileInput = document.getElementById('d-imageFile');
+  if (fileInput?.files?.[0]) {
+    try { imageUrl = await StorageHelper.uploadFile(fileInput.files[0], 'destinations', p => {}); } catch(e) { toast('Upload gagal: ' + e.message, 'err'); }
+  }
+  const data = { name, emoji:val('d-emoji')||'🏔️', cat:val('d-cat'), status:val('d-status'), loc:val('d-loc'), rating:parseFloat(val('d-rating'))||4.5, color:val('d-color')||'bg-teal', descShort:val('d-short'), descFull:val('d-full'), jam:val('d-jam'), tiket:val('d-tiket'), lat:parseFloat(val('d-lat'))||0, lng:parseFloat(val('d-lng'))||0, tips:val('d-tips'), imageUrl, gallery:val('d-gallery') };
+  await saveItem('destinations', data, key);
+  setBtnLoading('destSaveBtn', false);
+  closeModal('destModal');
+  toast(`Destinasi "${name}" ${key?'diupdate':'ditambahkan'} di Firebase!`, 'ok');
+}
+function editDest(key) {
+  const item = getData('destinations').find(d => (d._key||String(d.id)) === String(key));
+  if (item) openDestModal(item);
+}
+
+/* ── EVENT ── */
+function openEventModal(item=null) {
+  document.getElementById('eventMT').textContent = item ? 'Edit Event' : 'Tambah Event';
+  const f = { 'ev-key':'_key', 'ev-name':'name', 'ev-date':'date', 'ev-type':'type', 'ev-start':'timeStart', 'ev-end':'timeEnd', 'ev-loc':'loc', 'ev-desc':'desc', 'ev-ticket':'ticket', 'ev-status':'status', 'ev-imageUrl':'imageUrl' };
+  for(const[id,field] of Object.entries(f)) { const el=document.getElementById(id); if(el) el.value=item?.[field]||''; }
+  showImgPreview('ev-imageUrl', 'ev-imagePreview', item?.imageUrl);
+  clearFileInput('ev-imageFile');
+  openModal('eventModal');
+}
+async function saveEvent() {
+  const name = document.getElementById('ev-name').value.trim();
+  if (!name) { toast('Nama event wajib!','err'); return; }
+  const key = document.getElementById('ev-key').value;
+  setBtnLoading('eventSaveBtn', true);
+  let imageUrl = val('ev-imageUrl') || '';
+  const fileInput = document.getElementById('ev-imageFile');
+  if (fileInput?.files?.[0]) {
+    try { imageUrl = await StorageHelper.uploadFile(fileInput.files[0], 'events'); } catch(e) { toast('Upload gagal: ' + e.message, 'err'); }
+  }
+  const data = { name, date:val('ev-date'), type:val('ev-type'), timeStart:val('ev-start'), timeEnd:val('ev-end'), loc:val('ev-loc'), desc:val('ev-desc'), ticket:val('ev-ticket'), status:val('ev-status'), imageUrl };
+  await saveItem('events', data, key);
+  setBtnLoading('eventSaveBtn', false);
+  closeModal('eventModal');
+  toast(`Event "${name}" ${key?'diupdate':'ditambahkan'}!`, 'ok');
+}
+function editEvent(key) { const item=getData('events').find(e=>(e._key||String(e.id))===String(key)); if(item) openEventModal(item); }
+
+/* ── CULINARY ── */
+function openCulModal(item=null) {
+  document.getElementById('culMT').textContent = item ? 'Edit Kuliner' : 'Tambah Kuliner';
+  const f = { 'cu-key':'_key', 'cu-name':'name', 'cu-emoji':'emoji', 'cu-type':'type', 'cu-color':'color', 'cu-loc':'loc', 'cu-lat':'lat', 'cu-lng':'lng', 'cu-desc':'desc', 'cu-descFull':'descFull', 'cu-jam':'jam', 'cu-price':'price', 'cu-tips':'tips', 'cu-status':'status', 'cu-imageUrl':'imageUrl', 'cu-gallery':'gallery' };
+  for(const[id,field] of Object.entries(f)) { const el=document.getElementById(id); if(el) el.value=item?.[field]||''; }
+  showImgPreview('cu-imageUrl', 'cu-imagePreview', item?.imageUrl);
+  clearFileInput('cu-imageFile');
+  openModal('culModal');
+}
+async function saveCul() {
+  const name = document.getElementById('cu-name').value.trim();
+  if (!name) { toast('Nama wajib!','err'); return; }
+  const key = document.getElementById('cu-key').value;
+  setBtnLoading('culSaveBtn', true);
+  let imageUrl = val('cu-imageUrl') || '';
+  const fileInput = document.getElementById('cu-imageFile');
+  if (fileInput?.files?.[0]) {
+    try { imageUrl = await StorageHelper.uploadFile(fileInput.files[0], 'culinary'); } catch(e) { toast('Upload gagal: ' + e.message, 'err'); }
+  }
+  const data = { name, emoji:val('cu-emoji')||'🍽️', type:val('cu-type'), color:val('cu-color'), loc:val('cu-loc'), lat:parseFloat(val('cu-lat'))||0, lng:parseFloat(val('cu-lng'))||0, desc:val('cu-desc'), descFull:val('cu-descFull'), jam:val('cu-jam'), price:val('cu-price'), tips:val('cu-tips'), status:val('cu-status'), imageUrl, gallery:val('cu-gallery') };
+  await saveItem('culinary', data, key);
+  setBtnLoading('culSaveBtn', false);
+  closeModal('culModal');
+  toast(`Kuliner "${name}" ${key?'diupdate':'ditambahkan'}!`, 'ok');
+}
+function editCul(key) { const item=getData('culinary').find(c=>(c._key||String(c.id))===String(key)); if(item) openCulModal(item); }
+
+/* ── TOUR ── */
+let _stopCnt = 0;
+function openTourModal(item=null) {
+  document.getElementById('tourMT').textContent = item ? 'Edit Itinerary' : 'Tambah Itinerary';
+  const f = { 't-key':'_key', 't-name':'name', 't-dur':'duration', 't-theme':'theme', 't-color':'color', 't-status':'status', 't-imageUrl':'imageUrl' };
+  for(const[id,field] of Object.entries(f)) { const el=document.getElementById(id); if(el) el.value=item?.[field]||''; }
+  _stopCnt = 0;
+  document.getElementById('stopList').innerHTML = '';
+  (item?.stops || [{ label:'', sub:'' }]).forEach(s => addStop(s.label, s.sub));
+  showImgPreview('t-imageUrl', 't-imagePreview', item?.imageUrl);
+  clearFileInput('t-imageFile');
+  openModal('tourModal');
+}
+function addStop(lbl='', sub='') {
+  _stopCnt++;
+  const n = _stopCnt;
+  const div = document.createElement('div');
+  div.style.cssText = 'display:flex;gap:7px;align-items:center;margin-bottom:7px';
+  div.innerHTML = `
+    <span style="font-family:var(--mono);font-size:10px;color:var(--t3);width:16px;text-align:center;flex-shrink:0">${n}</span>
+    <input value="${lbl}" placeholder="Nama stop" class="stop-l" style="flex:2;padding:7px 10px;background:var(--bg);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-size:11px;outline:none">
+    <input value="${sub}" placeholder="Waktu / info" class="stop-s" style="flex:1;padding:7px 10px;background:var(--bg);border:1px solid var(--b2);border-radius:6px;color:var(--t1);font-size:11px;outline:none">
+    <button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:15px">×</button>
+  `;
+  document.getElementById('stopList').appendChild(div);
+}
+async function saveTour() {
+  const name = document.getElementById('t-name').value.trim();
+  if (!name) { toast('Nama tour wajib!','err'); return; }
+  const stops = [...document.querySelectorAll('#stopList > div')].map(r => ({ label: r.querySelector('.stop-l')?.value||'', sub: r.querySelector('.stop-s')?.value||'' })).filter(s => s.label);
+  const key = document.getElementById('t-key').value;
+  setBtnLoading('tourSaveBtn', true);
+  let imageUrl = val('t-imageUrl') || '';
+  const fileInput = document.getElementById('t-imageFile');
+  if (fileInput?.files?.[0]) {
+    try { imageUrl = await StorageHelper.uploadFile(fileInput.files[0], 'tours'); } catch(e) { toast('Upload gagal: ' + e.message, 'err'); }
+  }
+  const data = { name, duration:val('t-dur'), theme:val('t-theme'), color:val('t-color'), status:val('t-status'), stops, imageUrl };
+  await saveItem('tours', data, key);
+  setBtnLoading('tourSaveBtn', false);
+  closeModal('tourModal');
+  toast(`Itinerary "${name}" ${key?'diupdate':'disimpan'}!`, 'ok');
+}
+function editTour(key) { const item=getData('tours').find(t=>(t._key||String(t.id))===String(key)); if(item) openTourModal(item); }
+
+/* ── STAY ── */
+function openStayModal(item=null) {
+  document.getElementById('stayMT').textContent = item ? 'Edit Akomodasi' : 'Tambah Akomodasi';
+  const f = { 'st-key':'_key', 'st-name':'name', 'st-emoji':'emoji', 'st-type':'type', 'st-price':'price', 'st-loc':'loc', 'st-lat':'lat', 'st-lng':'lng', 'st-rating':'rating', 'st-desc':'desc', 'st-amenities':'amenities', 'st-jam':'jam', 'st-notes':'notes', 'st-status':'status', 'st-imageUrl':'imageUrl', 'st-gallery':'gallery' };
+  for(const[id,field] of Object.entries(f)) { const el=document.getElementById(id); if(el) el.value=item?.[field]||''; }
+  showImgPreview('st-imageUrl', 'st-imagePreview', item?.imageUrl);
+  clearFileInput('st-imageFile');
+  openModal('stayModal');
+}
+async function saveStay() {
+  const name = document.getElementById('st-name').value.trim();
+  if (!name) { toast('Nama wajib!','err'); return; }
+  const key = document.getElementById('st-key').value;
+  setBtnLoading('staySaveBtn', true);
+  let imageUrl = val('st-imageUrl') || '';
+  const fileInput = document.getElementById('st-imageFile');
+  if (fileInput?.files?.[0]) {
+    try { imageUrl = await StorageHelper.uploadFile(fileInput.files[0], 'stay'); } catch(e) { toast('Upload gagal: ' + e.message, 'err'); }
+  }
+  const data = { name, emoji:val('st-emoji')||'🏨', type:val('st-type'), price:parseInt(val('st-price'))||0, loc:val('st-loc'), lat:parseFloat(val('st-lat'))||0, lng:parseFloat(val('st-lng'))||0, rating:parseFloat(val('st-rating'))||4.0, desc:val('st-desc'), amenities:val('st-amenities'), jam:val('st-jam'), notes:val('st-notes'), status:val('st-status'), imageUrl, gallery:val('st-gallery') };
+  await saveItem('stay', data, key);
+  setBtnLoading('staySaveBtn', false);
+  closeModal('stayModal');
+  toast(`Akomodasi "${name}" ${key?'diupdate':'ditambahkan'}!`, 'ok');
+}
+function editStay(key) { const item=getData('stay').find(s=>(s._key||String(s.id))===String(key)); if(item) openStayModal(item); }
+
+/* ── ACCESS ── */
+function renderAccess() {
+  const items = getData('access');
+  const tbody = document.getElementById('access-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = items.length ? items.map(a => `
+    <tr>
+      <td><div class="cwi"><div class="ci">${modeIcon(a.mode)}</div><div><div class="ct">${a.mode||'—'}</div><div class="cs">${a.name||''}</div></div></div></td>
+      <td style="font-size:11px">${a.from||'—'} → ${a.to||'—'}</td>
+      <td style="font-size:11px;color:var(--t2)">${a.schedule||'—'}</td>
+      <td style="font-family:var(--mono);font-size:11px">${a.price||'—'}</td>
+      <td>${sB(a.status)}</td>
+      <td><div class="ra"><button class="btn btn-s btn-sm" onclick="editAccess('${a._key||a.id}')">Edit</button><button class="btn btn-d btn-sm" onclick="delItem('access','${a._key||a.id}','${a.name}')">Hapus</button></div></td>
+    </tr>`).join('') : emptyTd(6, 'Belum ada data transportasi. Klik "+ Tambah Rute" untuk mulai.');
+}
+function modeIcon(mode) {
+  const m = { Bus:'🚌', Kereta:'🚂', Angkot:'🚐', 'Shuttle / Travel':'🚗', 'Colt / Minibus':'🚙', 'Ojek Online':'🏍' };
+  return m[mode] || '🚌';
+}
+function openAccessModal(item=null) {
+  document.getElementById('accessMT').textContent = item ? 'Edit Rute' : 'Tambah Rute Transportasi';
+  const f = { 'ac-key':'_key', 'ac-mode':'mode', 'ac-name':'name', 'ac-from':'from', 'ac-to':'to', 'ac-schedule':'schedule', 'ac-duration':'duration', 'ac-price':'price', 'ac-status':'status', 'ac-info':'info' };
+  for(const[id,field] of Object.entries(f)) { const el=document.getElementById(id); if(el) el.value=item?.[field]||''; }
+  openModal('accessModal');
+}
+async function saveAccess() {
+  const name = document.getElementById('ac-name').value.trim();
+  if (!name) { toast('Nama/rute wajib!','err'); return; }
+  const key = document.getElementById('ac-key').value;
+  const data = { mode:val('ac-mode'), name, from:val('ac-from'), to:val('ac-to'), schedule:val('ac-schedule'), duration:val('ac-duration'), price:val('ac-price'), status:val('ac-status'), info:val('ac-info') };
+  await saveItem('access', data, key);
+  closeModal('accessModal');
+  toast(`Rute "${name}" ${key?'diupdate':'ditambahkan'}!`, 'ok');
+}
+function editAccess(key) { const item=getData('access').find(a=>(a._key||String(a.id))===String(key)); if(item) openAccessModal(item); }
+
+/* ── SETTINGS ── */
+async function saveSiteConfig() {
+  const cfg = { name:val('cfg-name'), tagline:val('cfg-tagline'), desc:val('cfg-desc'), email:val('cfg-email'), ig:val('cfg-ig') };
+  await DB.saveSiteConfig(cfg);
+  toast('Konfigurasi website disimpan ke Firebase!', 'ok');
+}
+
+function switchST(btn, id) {
+  document.querySelectorAll('.st-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.sp').forEach(p=>p.classList.remove('active'));
+  document.getElementById(`st-${id}`)?.classList.add('active');
+}
+
+async function runSeed() {
+  toast('Seeding data ke Firebase...', '');
+  await seedDefaultData();
+  toast('Seed selesai! Cek panel Destinasi, Events, dll.', 'ok');
+}
+
+async function exportData(path) {
+  const data = await DB.getList(path);
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `sukabumi-${path}-${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast(`Data "${path}" berhasil di-export!`, 'ok');
+}
+
+/* ============================================================
+   MODAL & CONFIRM UTILS
+============================================================ */
+function openModal(id) { document.getElementById(id)?.classList.add('open'); }
+function closeModal(id) { document.getElementById(id)?.classList.remove('open'); }
+document.querySelectorAll('.mo').forEach(el => {
+  el.addEventListener('click', e => { if(e.target===el) el.classList.remove('open'); });
+});
+document.addEventListener('keydown', e => {
+  if(e.key==='Escape') document.querySelectorAll('.mo.open').forEach(m=>m.classList.remove('open'));
+});
+
+let _confirmCb = null;
+function confirmAction(msg, cb) {
+  document.getElementById('confirmMsg').textContent = msg;
+  _confirmCb = cb;
+  openModal('confirmModal');
+}
+document.getElementById('confirmOk').onclick = () => { closeModal('confirmModal'); if(_confirmCb) _confirmCb(); };
+
+/* ============================================================
+   TOAST
+============================================================ */
+let _tt;
+function toast(msg, type='') {
+  const t = document.getElementById('adminToast');
+  const icons = { ok:'✅', err:'❌', '':'ℹ️' };
+  document.getElementById('toastIcon').textContent = icons[type]||'ℹ️';
+  document.getElementById('toastMsg').textContent = msg;
+  t.className = `toast show${type?' '+type:''}`;
+  clearTimeout(_tt);
+  _tt = setTimeout(()=>t.classList.remove('show'), 3200);
+}
+// Alias for compatibility with shared code that calls showToast()
+function showToast(msg, type='') {
+  const map = { 'success':'ok', 'error':'err' };
+  toast(msg, map[type] || type);
+}
+
+/* ============================================================
+   SEARCH & FILTER
+============================================================ */
+function filterRows(tbodyId, q) {
+  document.querySelectorAll(`#${tbodyId} tr`).forEach(r => {
+    r.style.display = !q || r.textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+function filterByVal(tbodyId, v) {
+  document.querySelectorAll(`#${tbodyId} tr`).forEach(r => {
+    r.style.display = !v || r.textContent.includes(v) ? '' : 'none';
+  });
+}
+function globalSearch(q) {
+  if (!q) return;
+  toast(`Gunakan filter di masing-masing panel untuk pencarian.`, '');
+}
+
+/* ============================================================
+   HELPERS
+============================================================ */
+function val(id) { return document.getElementById(id)?.value || ''; }
+
+/* ── IMAGE UPLOAD HELPERS ── */
+
+/** Show preview when URL input changes */
+function showImgPreview(urlInputId, previewId, url) {
+  const preview = document.getElementById(previewId);
+  if (!preview) return;
+  const src = url || '';
+  if (src) {
+    preview.style.display = 'block';
+    preview.querySelector('img').src = src;
+  } else {
+    preview.style.display = 'none';
+  }
+}
+
+/** Called when file input changes — shows preview and optionally sets URL field */
+function previewImg(urlInputId, previewId, fileInput) {
+  const file = fileInput?.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const preview = document.getElementById(previewId);
+    if (preview) {
+      preview.style.display = 'block';
+      preview.querySelector('img').src = e.target.result;
+    }
+    // Also show filename in URL field as placeholder
+    const urlEl = document.getElementById(urlInputId);
+    if (urlEl && !urlEl.value) urlEl.placeholder = `📁 ${file.name} (akan diupload saat simpan)`;
+  };
+  reader.readAsDataURL(file);
+}
+
+/** Clear file input (reset after modal close) */
+function clearFileInput(fileInputId) {
+  const el = document.getElementById(fileInputId);
+  if (el) el.value = '';
+}
+
+/** Set loading state on save button */
+function setBtnLoading(btnId, loading) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.disabled = loading;
+  if (loading) {
+    btn._origText = btn.textContent;
+    btn.textContent = '⏳ Menyimpan...';
+  } else {
+    btn.textContent = btn._origText || 'Simpan ke Firebase ↗';
+  }
+}
+
+// Responsive
+function checkMobile() {
+  const m = window.innerWidth <= 768;
+  document.getElementById('mobileMenuBtn').style.display = m ? 'flex' : 'none';
+}
+window.addEventListener('resize', checkMobile);
+checkMobile();
+</script>
+</body>
+</html>

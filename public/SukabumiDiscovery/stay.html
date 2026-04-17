@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Menginap di Sukabumi — Sukabumi Discovery</title>
+<link rel="stylesheet" href="shared.css">
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="firebase-config.js"></script>
+
+<style>
+.stay-header { background: var(--teal); padding: 110px 40px 50px; position: relative; overflow: hidden; }
+.stay-header::before { content: '🏨'; position: absolute; right: 5%; top: 50%; transform: translateY(-50%); font-size: 180px; opacity: 0.18; pointer-events: none; }
+.stay-header h1 { font-family: var(--font-display); font-size: clamp(40px,7vw,80px); font-weight: 800; line-height: 1; letter-spacing: -0.03em; }
+.stay-header p { font-size: 17px; color: rgba(0,0,0,0.6); margin-top: 14px; max-width: 480px; line-height: 1.7; }
+
+.stay-body { max-width: var(--max-w); margin: 0 auto; padding: 50px 40px; }
+
+/* Filter */
+.stay-filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 36px; align-items: center; }
+.stay-count { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: #888; margin-left: auto; }
+
+.stay-cat { margin-bottom: 50px; }
+.stay-cat-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; padding-bottom: 14px; border-bottom: 2px solid var(--dark); }
+.stay-cat-header h3 { font-family: var(--font-display); font-size: 22px; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+.stay-cat-count { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: #888; }
+
+.stay-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
+
+.stay-card { border: 2px solid var(--dark); border-radius: 22px; overflow: hidden; background: var(--white); transition: transform 0.25s, box-shadow 0.25s; display: flex; flex-direction: column; }
+.stay-card:hover { transform: translateY(-6px); box-shadow: 6px 6px 0 var(--dark); }
+.stay-img { height: 180px; display: flex; align-items: center; justify-content: center; font-size: 56px; position: relative; overflow: hidden; }
+.stay-img img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
+.stay-img .stay-emoji { position: relative; z-index: 1; font-size: 56px; }
+.stay-badge { position: absolute; top: 12px; left: 12px; z-index: 2; }
+.stay-body-c { padding: 20px; flex: 1; display: flex; flex-direction: column; }
+.stay-body-c h4 { font-family: var(--font-display); font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+.stay-body-c p { font-size: 13px; color: #666; line-height: 1.5; flex: 1; margin-bottom: 12px; }
+.stay-amenities { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.amenity { font-size: 12px; background: var(--cream); padding: 4px 10px; border-radius: 100px; border: 1.5px solid #ddd; color: #555; }
+.stay-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 14px; border-top: 1px solid #eee; }
+.stay-price-info .price { font-family: var(--font-display); font-size: 16px; font-weight: 800; color: var(--orange); }
+.stay-price-info .price-note { font-size: 11px; color: #aaa; }
+.stay-rating { font-family: var(--font-display); font-size: 13px; font-weight: 700; }
+
+/* VANA campervan banner */
+.campervan-banner { background: var(--dark); color: var(--white); border: 2px solid var(--dark); border-radius: 22px; display: grid; grid-template-columns: 1fr auto; gap: 30px; align-items: center; padding: 32px; margin-bottom: 50px; }
+.cv-text h3 { font-family: var(--font-display); font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+.cv-text p { font-size: 14px; color: #bbb; line-height: 1.7; max-width: 500px; }
+.cv-text .cv-tags { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+.cv-icon { font-size: 80px; }
+
+.tips-box { background: var(--yellow); border: 2px solid var(--dark); border-radius: 20px; padding: 28px; margin-top: 40px; }
+.tips-box h4 { font-family: var(--font-display); font-size: 18px; font-weight: 800; margin-bottom: 14px; }
+.tips-list li { padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.1); font-size: 14px; display: flex; gap: 10px; }
+.tips-list li:last-child { border: none; }
+.tips-list li::before { content: '✦'; color: var(--orange); flex-shrink: 0; }
+
+/* skeletons */
+.skel { background: linear-gradient(90deg, #eee 25%, #f5f5f5 50%, #eee 75%); background-size: 200% 100%; animation: skel 1.4s infinite; border-radius: 10px; }
+@keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.skel-card { border: 2px solid #e0e0e0; border-radius: 22px; overflow: hidden; background: #fff; }
+
+.empty-state { text-align: center; padding: 60px 20px; }
+.empty-state .ei { font-size: 56px; margin-bottom: 12px; }
+.empty-state h3 { font-family: var(--font-display); font-size: 20px; font-weight: 700; }
+.empty-state p { font-size: 14px; color: #888; margin-top: 6px; }
+
+@media (max-width: 900px) {
+  .stay-body { padding: 40px 20px; }
+  .stay-header { padding: 90px 20px 40px; }
+  .stay-grid { grid-template-columns: 1fr 1fr; }
+  .campervan-banner { grid-template-columns: 1fr; }
+  .cv-icon { display: none; }
+}
+@media (max-width: 580px) {
+  .stay-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<script src="shared.js"></script>
+<script>renderNav('stay');</script>
+
+<div class="stay-header">
+  <div class="breadcrumb"><a href="index.html">Home</a><span>›</span><span>Stay</span></div>
+  <h1>Menginap di<br>Sukabumi.</h1>
+  <p>Dari penginapan tepi pantai sampai villa dengan view geopark langsung — pilih yang paling sesuai dengan trip kamu.</p>
+</div>
+
+<div class="color-band"></div>
+
+<div class="stay-body">
+  <!-- Filter chips -->
+  <div class="stay-filter-row">
+    <button class="chip active c-teal" onclick="filterStay(this,'all')">Semua</button>
+    <button class="chip" onclick="filterStay(this,'Hotel Berbintang')">🏨 Hotel</button>
+    <button class="chip" onclick="filterStay(this,'Villa & Penginapan Alam')">🏡 Villa & Alam</button>
+    <button class="chip" onclick="filterStay(this,'Glamping')">⛺ Glamping</button>
+    <button class="chip" onclick="filterStay(this,'Budget & Homestay')">🏠 Budget</button>
+    <button class="chip" onclick="filterStay(this,'Pengalaman Unik')">🚐 Unik</button>
+    <span class="stay-count" id="stayCount">Memuat...</span>
+  </div>
+
+  <!-- VANA highlight — always shown -->
+  <div class="campervan-banner reveal">
+    <div class="cv-text">
+      <div class="section-eyebrow" style="color:var(--teal)">✦ Pengalaman Berbeda</div>
+      <h3>VANA Campervan Experience 🚐</h3>
+      <p>Tidak mau terikat hotel? Trip campervan Sukabumi–Ciletuh adalah experience yang beda level. Tidur di alam, bebas rute, pemandangan ganti tiap malam.</p>
+      <div class="cv-tags">
+        <span class="tag tag-teal">Sukabumi–Ciletuh Route</span>
+        <span class="tag" style="color:white;border-color:rgba(255,255,255,0.3)">Curated Experience</span>
+        <span class="tag" style="color:white;border-color:rgba(255,255,255,0.3)">mulai Rp 850rb/trip</span>
+      </div>
+      <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap;">
+        <a href="destination.html?id=ciletuh" class="btn btn-secondary">Lihat Itinerary →</a>
+        <button class="btn btn-white" onclick="showToast('Fitur booking segera hadir! 🚐','success')">Book Sekarang</button>
+      </div>
+    </div>
+    <div class="cv-icon">🚐</div>
+  </div>
+
+  <!-- Dynamic content from Firebase -->
+  <div id="stayContainer">
+    <!-- skeletons -->
+    <div class="stay-cat">
+      <div class="stay-grid">
+        <div class="skel-card"><div class="skel" style="height:180px;border-radius:0"></div><div style="padding:20px"><div class="skel" style="height:18px;margin-bottom:10px;width:80%"></div><div class="skel" style="height:14px;margin-bottom:8px"></div><div class="skel" style="height:14px;width:60%"></div></div></div>
+        <div class="skel-card"><div class="skel" style="height:180px;border-radius:0"></div><div style="padding:20px"><div class="skel" style="height:18px;margin-bottom:10px;width:80%"></div><div class="skel" style="height:14px;margin-bottom:8px"></div><div class="skel" style="height:14px;width:60%"></div></div></div>
+        <div class="skel-card"><div class="skel" style="height:180px;border-radius:0"></div><div style="padding:20px"><div class="skel" style="height:18px;margin-bottom:10px;width:80%"></div><div class="skel" style="height:14px;margin-bottom:8px"></div><div class="skel" style="height:14px;width:60%"></div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tips-box reveal">
+    <h4>💡 Tips Menginap di Sukabumi</h4>
+    <ul class="tips-list">
+      <li>Untuk area Ciletuh — booking jauh-jauh hari terutama untuk weekend dan high season (Juni–Agustus).</li>
+      <li>Sebagian besar penginapan di area Ciletuh tidak menerima kartu kredit — siapkan uang tunai.</li>
+      <li>Untuk Gunung Gede: periksa peraturan terbaru TNGGP sebelum booking, ada pembatasan jumlah pengunjung.</li>
+      <li>Cek platform Booking.com, Traveloka, dan Airbnb untuk perbandingan harga.</li>
+      <li>Penginapan dengan breakfast lebih worth it karena area Ciletuh sulit cari warung pagi hari.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+const BG_COLORS = { 'bg-blue':'#2D32F0','bg-orange':'#F05A10','bg-red':'#C83060','bg-teal':'#5DD4C4','bg-yellow':'#F0C820','bg-peach':'#F5C8B0','bg-dark':'#181818' };
+const TYPE_ICONS = { 'Hotel Berbintang':'🏨','Villa & Penginapan Alam':'🏡','Glamping':'⛺','Budget & Homestay':'🏠','Pengalaman Unik':'✨' };
+const TYPE_TAGS = { 'Hotel Berbintang':'tag-blue','Villa & Penginapan Alam':'tag-teal','Glamping':'tag-yellow','Budget & Homestay':'','Pengalaman Unik':'tag-orange' };
+
+let allStay = [];
+let activeFilter = 'all';
+
+DB.listenStay(items => {
+  allStay = items.filter(i => i.status === 'published');
+  renderStay();
+});
+
+function filterStay(btn, filter) {
+  document.querySelectorAll('.stay-filter-row .chip').forEach(c => c.classList.remove('active','c-teal','c-blue','c-orange'));
+  btn.classList.add('active','c-teal');
+  activeFilter = filter;
+  renderStay();
+}
+
+function renderStay() {
+  const filtered = activeFilter === 'all' ? allStay : allStay.filter(i => i.type === activeFilter);
+  document.getElementById('stayCount').textContent = `${filtered.length} pilihan`;
+
+  if (!filtered.length) {
+    document.getElementById('stayContainer').innerHTML = `<div class="empty-state"><div class="ei">🏨</div><h3>Belum ada data</h3><p>Akomodasi akan muncul setelah admin menambahkannya.</p></div>`;
+    return;
+  }
+
+  // Group by type
+  const groups = {};
+  filtered.forEach(item => {
+    const t = item.type || 'Lainnya';
+    if (!groups[t]) groups[t] = [];
+    groups[t].push(item);
+  });
+
+  let html = '';
+  Object.entries(groups).forEach(([type, items]) => {
+    const icon = TYPE_ICONS[type] || '🏠';
+    html += `
+    <div class="stay-cat">
+      <div class="stay-cat-header">
+        <h3>${icon} ${type}</h3>
+        <span class="stay-cat-count">${items.length} pilihan</span>
+      </div>
+      <div class="stay-grid">
+        ${items.map(item => stayCardHTML(item)).join('')}
+      </div>
+    </div>`;
+  });
+
+  document.getElementById('stayContainer').innerHTML = html;
+  initScrollReveal();
+}
+
+function stayCardHTML(item) {
+  const bg = BG_COLORS[item.color || 'bg-teal'] || '#5DD4C4';
+  const amenities = (item.amenities || '').split(',').filter(Boolean);
+  const price = item.price ? `Rp ${Number(item.price).toLocaleString('id-ID')}` : '—';
+  const tagClass = TYPE_TAGS[item.type] || '';
+
+  const imgHtml = item.imageUrl
+    ? `<div class="stay-img" style="background:${bg}">
+        <img src="${item.imageUrl}" alt="${item.name}" onerror="this.parentNode.innerHTML='<div class=stay-emoji>${item.emoji||'🏨'}</div>'">
+        <div class="stay-badge"><span class="tag ${tagClass}">${item.type || ''}</span></div>
+      </div>`
+    : `<div class="stay-img" style="background:${bg}">
+        <span class="stay-emoji">${item.emoji || '🏨'}</span>
+        <div class="stay-badge"><span class="tag ${tagClass}">${item.type || ''}</span></div>
+      </div>`;
+
+  return `
+  <div class="stay-card reveal">
+    ${imgHtml}
+    <div class="stay-body-c">
+      <h4>${item.name}</h4>
+      <p>${item.desc || ''}</p>
+      <div class="stay-amenities">
+        ${amenities.map(a => `<span class="amenity">${a.trim()}</span>`).join('')}
+      </div>
+      <div class="stay-footer">
+        <div class="stay-price-info">
+          <div class="price">${price}</div>
+          <div class="price-note">per malam</div>
+        </div>
+        <span class="stay-rating">⭐ ${item.rating || '—'}</span>
+      </div>
+    </div>
+  </div>`;
+}
+</script>
+</body>
+</html>

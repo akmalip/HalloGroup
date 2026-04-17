@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Peta Sukabumi — Sukabumi Discovery</title>
+<link rel="stylesheet" href="shared.css">
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="firebase-config.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+.map-page { display: flex; flex-direction: column; height: calc(100vh - 64px); margin-top: 64px; }
+.map-controls {
+  background: var(--white); border-bottom: 2px solid var(--dark);
+  padding: 14px 24px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; flex-shrink: 0;
+}
+.map-title { font-family: var(--font-display); font-size: 18px; font-weight: 800; }
+.map-filter-chips { display: flex; gap: 8px; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.map-filter-chips::-webkit-scrollbar { display: none; }
+
+.map-container { flex: 1; display: flex; overflow: hidden; position: relative; }
+#map { flex: 1; }
+
+/* Sidebar */
+.map-sidebar {
+  width: 320px; background: var(--white); border-left: 2px solid var(--dark);
+  overflow-y: auto; display: flex; flex-direction: column;
+  transition: transform 0.3s;
+}
+.sidebar-header { padding: 16px 20px; border-bottom: 2px solid var(--dark); }
+.sidebar-header h4 { font-family: var(--font-display); font-size: 15px; font-weight: 700; }
+.sidebar-header p { font-size: 13px; color: #888; margin-top: 3px; }
+.sidebar-list { flex: 1; overflow-y: auto; }
+.sidebar-item {
+  display: flex; gap: 12px; padding: 14px 20px;
+  border-bottom: 1px solid #f0f0f0; cursor: pointer;
+  transition: background 0.2s; text-decoration: none; color: var(--dark);
+}
+.sidebar-item:hover, .sidebar-item.active { background: var(--cream); }
+.si-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; border: 2px solid var(--dark); }
+.si-info h5 { font-family: var(--font-display); font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+.si-info .si-cat { font-size: 11px; color: var(--orange); font-weight: 600; font-family: var(--font-display); text-transform: uppercase; }
+.si-info .si-desc { font-size: 12px; color: #888; margin-top: 2px; line-height: 1.4; }
+.si-arrow { color: #ccc; margin-left: auto; font-size: 16px; }
+
+/* Detail panel */
+.map-detail {
+  position: absolute; bottom: 0; left: 0; right: 320px;
+  background: var(--white); border-top: 2px solid var(--dark); border-right: 2px solid var(--dark);
+  padding: 20px 24px; transform: translateY(100%); transition: transform 0.3s;
+  z-index: 900; border-radius: 20px 20px 0 0;
+  max-height: 260px; overflow-y: auto;
+}
+.map-detail.open { transform: translateY(0); }
+.md-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.md-close { width: 30px; height: 30px; border: 2px solid var(--dark); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; flex-shrink: 0; }
+.md-title { font-family: var(--font-display); font-size: 20px; font-weight: 800; }
+.md-meta { font-size: 13px; color: #888; margin-top: 3px; }
+.md-desc { font-size: 14px; color: #555; line-height: 1.6; margin-bottom: 14px; }
+.md-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* Custom markers */
+.custom-marker {
+  width: 36px; height: 36px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
+  border: 2px solid var(--dark); display: flex; align-items: center; justify-content: center;
+}
+.custom-marker span { transform: rotate(45deg); font-size: 16px; }
+
+/* Map toggle (mobile) */
+.map-sidebar-toggle {
+  display: none; position: absolute; bottom: 80px; right: 16px; z-index: 500;
+  background: var(--white); border: 2px solid var(--dark); border-radius: 100px;
+  padding: 10px 18px; font-family: var(--font-display); font-size: 12px; font-weight: 700;
+  cursor: pointer; box-shadow: 3px 3px 0 var(--dark);
+}
+
+@media (max-width: 768px) {
+  .map-page { height: calc(100vh - 60px); margin-top: 60px; }
+  .map-sidebar { position: absolute; bottom: 0; left: 0; right: 0; width: 100%; height: 50%; z-index: 450; transform: translateY(100%); }
+  .map-sidebar.open { transform: translateY(0); }
+  .map-detail { right: 0; }
+  .map-sidebar-toggle { display: flex; }
+  .map-controls { padding: 10px 16px; }
+}
+</style>
+</head>
+<body>
+<script src="shared.js"></script>
+<script>renderNav('map');</script>
+
+<div class="map-page">
+  <div class="map-controls">
+    <div class="map-title">🗺 Peta Sukabumi</div>
+    <div class="map-filter-chips" id="mapFilters">
+      <button class="chip active c-blue" onclick="filterMap(this,'all')">Semua</button>
+      <button class="chip" onclick="filterMap(this,'wisata')">🏔 Wisata</button>
+      <button class="chip" onclick="filterMap(this,'kuliner')">🍜 Kuliner</button>
+      <button class="chip" onclick="filterMap(this,'stay')">🏨 Menginap</button>
+      <button class="chip" onclick="filterMap(this,'akses')">🚌 Transportasi</button>
+    </div>
+  </div>
+
+  <div class="map-container">
+    <div id="map"></div>
+
+    <div class="map-sidebar" id="mapSidebar">
+      <div class="sidebar-header">
+        <h4>Destinasi</h4>
+        <p id="sidebarCount">Menampilkan semua lokasi</p>
+      </div>
+      <div class="sidebar-list" id="sidebarList">
+        <!-- rendered by JS -->
+      </div>
+    </div>
+
+    <div class="map-detail" id="mapDetail">
+      <!-- rendered by JS -->
+    </div>
+
+    <button class="map-sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">📍 Daftar Lokasi</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const locations = [
+  // Wisata Alam
+  { id:'ciletuh', name:'Geopark Ciletuh', cat:'wisata', emoji:'🏞️', color:'#5DD4C4', lat:-7.0994, lng:106.4697, desc:'UNESCO Global Geopark dengan amfiteater alam yang spektakuler.', rating:4.9, link:'destination.html?id=ciletuh' },
+  { id:'palabuhanratu', name:'Pantai Palabuhanratu', cat:'wisata', emoji:'🌊', color:'#2D32F0', lat:-6.9782, lng:106.5553, desc:'Pantai legendaris dengan ombak besar dan sunset dramatis.', rating:4.7, link:'destination.html?id=palabuhanratu' },
+  { id:'hutan-pinus', name:'Hutan Pinus Kertabumi', cat:'wisata', emoji:'🌿', color:'#F05A10', lat:-6.8720, lng:106.7234, desc:'Spot foto estetik dan healing di antara pohon pinus tinggi.', rating:4.5, link:'destination.html?id=hutan-pinus' },
+  { id:'gunung-gede', name:'Gunung Gede Pangrango', cat:'wisata', emoji:'⛰️', color:'#5DD4C4', lat:-6.7900, lng:106.9800, desc:'Pendakian paling legendaris di Jawa Barat.', rating:4.8, link:'destination.html?id=gunung-gede' },
+  { id:'curug-cigangsa', name:'Curug Cigangsa', cat:'wisata', emoji:'💧', color:'#F0C820', lat:-6.9500, lng:106.6800, desc:'Air terjun tersembunyi dengan trek 45 menit yang seru.', rating:4.6, link:'destination.html?id=curug-cigangsa' },
+  { id:'ujung-genteng', name:'Pantai Ujung Genteng', cat:'wisata', emoji:'🐢', color:'#2D32F0', lat:-7.3166, lng:106.4167, desc:'Pantai tenang dengan konservasi penyu yang aktif.', rating:4.5, link:'destination.html?id=palabuhanratu' },
+  { id:'bukit-panenjoan', name:'Bukit Panenjoan', cat:'wisata', emoji:'🌅', color:'#5DD4C4', lat:-7.0766, lng:106.4527, desc:'View point terbaik untuk sunrise dan seluruh amfiteater Ciletuh.', rating:4.9, link:'destination.html?id=ciletuh' },
+
+  // Kuliner
+  { id:'soto-mie', name:'Soto Mie Ade Lela (1982)', cat:'kuliner', emoji:'🍜', color:'#F05A10', lat:-6.9218, lng:106.9292, desc:'Legendaris sejak 1982. Wajib makan di sini.', rating:4.8, link:'things-to-do.html#culinary' },
+  { id:'mochi-lampion', name:'Toko Mochi Lampion', cat:'kuliner', emoji:'🍡', color:'#F0C820', lat:-6.9230, lng:106.9280, desc:'Oleh-oleh mochi Sukabumi paling ikonik. Bisa lihat proses bikinnya.', rating:4.7, link:'things-to-do.html#culinary' },
+  { id:'pasar-pelita', name:'Pasar Pelita', cat:'kuliner', emoji:'🛺', color:'#C83060', lat:-6.9200, lng:106.9260, desc:'Surga street food Sukabumi. Paling ramai malam hari.', rating:4.4, link:'things-to-do.html#culinary' },
+  { id:'seafood-palr', name:'Seafood Palabuhanratu', cat:'kuliner', emoji:'🦐', color:'#F05A10', lat:-6.9790, lng:106.5545, desc:'Ikan bakar dan seafood segar langsung dari nelayan.', rating:4.8, link:'things-to-do.html#culinary' },
+
+  // Stay
+  { id:'grand-inna', name:'Grand Inna Samudra Beach', cat:'stay', emoji:'🏨', color:'#2D32F0', lat:-6.9780, lng:106.5560, desc:'Hotel berbintang iconic dengan view langsung ke Samudra Hindia.', rating:4.6, link:'stay.html' },
+  { id:'villa-ciletuh', name:'Villa Ciletuh Geopark', cat:'stay', emoji:'🏡', color:'#5DD4C4', lat:-7.0990, lng:106.4680, desc:'Penginapan dengan view amfiteater Ciletuh langsung dari kamar.', rating:4.9, link:'stay.html' },
+
+  // Transportasi
+  { id:'terminal-sukabumi', name:'Terminal Bus Sukabumi', cat:'akses', emoji:'🚌', color:'#888', lat:-6.9195, lng:106.9305, desc:'Terminal utama bus antar kota dari/ke Sukabumi.', rating:4.0, link:'access.html' },
+  { id:'stasiun-sukabumi', name:'Stasiun Sukabumi', cat:'akses', emoji:'🚂', color:'#888', lat:-6.9188, lng:106.9317, desc:'Stasiun kereta dengan rute ke Bogor (KA Pangrango).', rating:4.2, link:'access.html' },
+];
+
+let map, markers = [];
+let activeFilter = 'all';
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Init Leaflet map centered on Sukabumi
+  map = L.map('map', { zoomControl: false }).setView([-7.05, 106.75], 10);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+    maxZoom: 19
+  }).addTo(map);
+
+  // Custom zoom control position
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+  renderMarkers();
+  renderSidebar();
+
+  // Check if a focus was requested
+  const focus = sessionStorage.getItem('mapFocus');
+  if (focus) {
+    sessionStorage.removeItem('mapFocus');
+    const loc = locations.find(l => l.id === focus);
+    if (loc) {
+      map.setView([loc.lat, loc.lng], 14);
+      setTimeout(() => showDetail(loc), 600);
+    }
+  }
+});
+
+function createMarkerIcon(loc) {
+  const html = `<div style="background:${loc.color};width:38px;height:38px;border-radius:50%;border:3px solid #181818;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:2px 2px 0 #181818;">${loc.emoji}</div>`;
+  return L.divIcon({ html, className: '', iconSize: [38,38], iconAnchor: [19,38] });
+}
+
+function renderMarkers() {
+  markers.forEach(m => map.removeLayer(m.marker));
+  markers = [];
+
+  const filtered = activeFilter === 'all' ? locations : locations.filter(l => l.cat === activeFilter);
+
+  filtered.forEach(loc => {
+    const marker = L.marker([loc.lat, loc.lng], { icon: createMarkerIcon(loc) })
+      .addTo(map)
+      .on('click', () => showDetail(loc));
+    markers.push({ id: loc.id, marker });
+  });
+}
+
+function renderSidebar() {
+  const filtered = activeFilter === 'all' ? locations : locations.filter(l => l.cat === activeFilter);
+  const list = document.getElementById('sidebarList');
+  const count = document.getElementById('sidebarCount');
+  count.textContent = `${filtered.length} lokasi`;
+
+  list.innerHTML = filtered.map(loc => `
+    <div class="sidebar-item" id="si-${loc.id}" onclick="focusLocation('${loc.id}')">
+      <div class="si-icon" style="background:${loc.color}20">${loc.emoji}</div>
+      <div class="si-info">
+        <h5>${loc.name}</h5>
+        <div class="si-cat">${loc.cat}</div>
+        <div class="si-desc">${loc.desc.slice(0,60)}...</div>
+      </div>
+      <div class="si-arrow">›</div>
+    </div>
+  `).join('');
+}
+
+function focusLocation(id) {
+  const loc = locations.find(l => l.id === id);
+  if (!loc) return;
+  map.setView([loc.lat, loc.lng], 14, { animate: true });
+  showDetail(loc);
+  document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+  document.getElementById(`si-${id}`)?.classList.add('active');
+  // Close mobile sidebar
+  if (window.innerWidth <= 768) document.getElementById('mapSidebar').classList.remove('open');
+}
+
+function showDetail(loc) {
+  const detail = document.getElementById('mapDetail');
+  detail.innerHTML = `
+    <div class="md-header">
+      <div>
+        <div class="md-title">${loc.emoji} ${loc.name}</div>
+        <div class="md-meta">📍 ${loc.cat} · ⭐ ${loc.rating}</div>
+      </div>
+      <div class="md-close" onclick="closeDetail()">✕</div>
+    </div>
+    <div class="md-desc">${loc.desc}</div>
+    <div class="md-actions">
+      <a href="${loc.link}" class="btn btn-primary btn-sm">Lihat Detail →</a>
+      <button class="btn btn-outline btn-sm" onclick="openInMaps(${loc.lat},${loc.lng},'${loc.name}')">📍 Buka di Maps</button>
+    </div>
+  `;
+  detail.classList.add('open');
+}
+
+function closeDetail() { document.getElementById('mapDetail').classList.remove('open'); }
+
+function filterMap(btn, cat) {
+  document.querySelectorAll('#mapFilters .chip').forEach(c => c.classList.remove('active','c-blue','c-orange','c-teal'));
+  btn.classList.add('active', 'c-blue');
+  activeFilter = cat;
+  renderMarkers();
+  renderSidebar();
+}
+
+function toggleSidebar() {
+  document.getElementById('mapSidebar').classList.toggle('open');
+}
+
+function openInMaps(lat, lng, name) {
+  window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}&query_place_id=${encodeURIComponent(name)}`, '_blank');
+}
+</script>
+</body>
+</html>

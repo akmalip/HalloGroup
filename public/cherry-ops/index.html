@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1A0F08">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Cherry Ops — Cherry Coffee Roastery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+/* ── CONFIG: ganti URL ini setelah deploy Google Apps Script ── */
+/* Lihat file google-apps-script.js untuk cara mendapatkan URL ini */
+
+:root {
+  --espresso: #1A0F08;
+  --roast: #3C2010;
+  --bark: #6B3A1F;
+  --caramel: #C4813A;
+  --cream: #F5E6C8;
+  --milk: #FAF5ED;
+  --steam: #F0E8D8;
+  --fog: rgba(26,15,8,0.06);
+  --fog2: rgba(26,15,8,0.12);
+  --r: 14px;
+  --r-sm: 8px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--milk);
+  color: var(--espresso);
+  min-height: 100vh;
+  padding-bottom: 100px;
+}
+
+/* ── HEADER ── */
+.header {
+  background: var(--espresso);
+  padding: 52px 20px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.header-inner { max-width: 480px; margin: 0 auto; }
+.header-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.header-logo {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--caramel);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'DM Serif Display', serif;
+  color: var(--espresso); font-size: 16px; font-weight: 400;
+}
+.header-name { font-family: 'DM Serif Display', serif; color: var(--cream); font-size: 17px; letter-spacing: 0.01em; }
+.header-loc { font-size: 11px; color: rgba(245,230,200,0.5); margin-top: 1px; }
+
+/* ── NAV TABS ── */
+.nav {
+  display: flex; gap: 6px; overflow-x: auto;
+  scrollbar-width: none; -ms-overflow-style: none;
+}
+.nav::-webkit-scrollbar { display: none; }
+.nav-btn {
+  flex-shrink: 0; padding: 7px 16px;
+  border-radius: 20px; border: 1px solid rgba(245,230,200,0.2);
+  background: transparent; color: rgba(245,230,200,0.55);
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 400;
+  cursor: pointer; transition: all 0.18s; letter-spacing: 0.01em;
+}
+.nav-btn.active {
+  background: var(--caramel); border-color: var(--caramel);
+  color: var(--espresso); font-weight: 500;
+}
+
+/* ── MAIN ── */
+.main { max-width: 480px; margin: 0 auto; padding: 20px 16px; }
+
+/* ── VIEWS ── */
+.view { display: none; }
+.view.active { display: block; }
+
+/* ── SECTION TITLE ── */
+.view-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 22px; color: var(--roast);
+  margin-bottom: 4px;
+}
+.view-sub { font-size: 13px; color: var(--bark); margin-bottom: 20px; opacity: 0.8; }
+
+/* ── CARD ── */
+.card {
+  background: #fff;
+  border-radius: var(--r);
+  border: 1px solid var(--fog2);
+  padding: 18px;
+  margin-bottom: 12px;
+}
+.card-label {
+  font-size: 10px; font-weight: 500; letter-spacing: 0.08em;
+  color: var(--caramel); text-transform: uppercase; margin-bottom: 12px;
+}
+
+/* ── FIELDS ── */
+.field { margin-bottom: 16px; }
+.field:last-child { margin-bottom: 0; }
+.field label {
+  display: block; font-size: 12px; font-weight: 500;
+  color: var(--bark); margin-bottom: 6px; letter-spacing: 0.02em;
+}
+.field input[type=text],
+.field input[type=number],
+.field input[type=date],
+.field input[type=datetime-local],
+.field select,
+.field textarea {
+  width: 100%; padding: 11px 14px;
+  border: 1px solid var(--fog2); border-radius: var(--r-sm);
+  background: var(--milk); color: var(--espresso);
+  font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 400;
+  outline: none; appearance: none; -webkit-appearance: none;
+  transition: border-color 0.15s;
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  border-color: var(--caramel);
+  background: #fff;
+}
+.field textarea { resize: none; height: 72px; line-height: 1.5; }
+.field select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B3A1F' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+}
+
+/* ── GRID ── */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* ── CHIPS ── */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  padding: 7px 14px; border-radius: 20px;
+  border: 1px solid var(--fog2); background: var(--milk);
+  color: var(--bark); font-size: 13px; font-weight: 400;
+  cursor: pointer; transition: all 0.14s;
+}
+.chip.on { background: var(--roast); border-color: var(--roast); color: var(--cream); font-weight: 500; }
+
+/* ── QTY CONTROL ── */
+.qty-wrap { margin-bottom: 14px; }
+.qty-item {
+  display: flex; align-items: center; gap: 0;
+  background: var(--milk); border-radius: var(--r-sm);
+  border: 1px solid var(--fog2); overflow: hidden;
+  margin-bottom: 8px;
+}
+.qty-label { flex: 1; padding: 12px 14px; font-size: 14px; color: var(--espresso); }
+.qty-sub { font-size: 11px; color: var(--bark); opacity: 0.7; margin-top: 1px; }
+.qty-controls { display: flex; align-items: center; gap: 0; border-left: 1px solid var(--fog2); }
+.qbtn {
+  width: 44px; height: 48px; border: none; background: transparent;
+  color: var(--bark); font-size: 20px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.1s;
+}
+.qbtn:active { background: var(--fog); }
+.qnum { min-width: 36px; text-align: center; font-size: 17px; font-weight: 500; color: var(--espresso); }
+
+/* ── SUMMARY BAR ── */
+.summary {
+  background: var(--espresso); border-radius: var(--r-sm);
+  padding: 14px 16px; margin: 4px 0 16px;
+}
+.summary-row { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; }
+.summary-row + .summary-row { border-top: 1px solid rgba(245,230,200,0.1); margin-top: 6px; padding-top: 9px; }
+.sl { font-size: 12px; color: rgba(245,230,200,0.6); }
+.sv { font-size: 14px; font-weight: 500; color: var(--cream); }
+.sv.big { font-size: 18px; font-family: 'DM Serif Display', serif; color: var(--caramel); }
+
+/* ── SCORE SLIDER ── */
+.score-wrap { display: flex; align-items: center; gap: 12px; }
+.score-wrap input[type=range] {
+  flex: 1; height: 4px; border-radius: 2px;
+  -webkit-appearance: none; appearance: none;
+  background: linear-gradient(to right, var(--caramel) 0%, var(--caramel) 50%, var(--fog2) 50%);
+  border: none; padding: 0;
+}
+.score-wrap input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 20px; height: 20px;
+  border-radius: 50%; background: var(--roast);
+  border: 2px solid var(--cream); cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+.score-val { min-width: 36px; text-align: right; font-size: 16px; font-weight: 500; color: var(--roast); }
+
+/* ── SUBMIT BUTTON ── */
+.btn-submit {
+  width: 100%; padding: 15px;
+  background: var(--roast); color: var(--cream);
+  border: none; border-radius: var(--r);
+  font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500;
+  cursor: pointer; letter-spacing: 0.02em;
+  transition: all 0.15s; margin-top: 4px;
+}
+.btn-submit:active { transform: scale(0.98); opacity: 0.9; }
+.btn-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* ── TOAST ── */
+.toast-wrap {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  z-index: 999; pointer-events: none;
+}
+.toast {
+  background: var(--espresso); color: var(--cream);
+  padding: 12px 20px; border-radius: 24px;
+  font-size: 13px; font-weight: 500;
+  opacity: 0; transform: translateY(8px);
+  transition: all 0.2s; white-space: nowrap;
+  border: 1px solid rgba(196,129,58,0.4);
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.err { background: #5C1A1A; border-color: rgba(255,100,100,0.4); }
+
+/* ── OFFLINE BADGE ── */
+.offline-bar {
+  display: none; background: #5C1A1A; color: #FFC0B0;
+  text-align: center; font-size: 12px; padding: 8px;
+}
+
+/* ── DIVIDER ── */
+.divider { height: 1px; background: var(--fog); margin: 16px 0; }
+
+/* ── SHRINK BADGE ── */
+.shrink-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--fog); border-radius: 6px;
+  padding: 8px 12px; font-size: 13px; color: var(--bark);
+}
+.shrink-pct { font-weight: 600; font-size: 16px; color: var(--roast); }
+</style>
+</head>
+<body>
+
+<div class="offline-bar" id="offline-bar">Tidak ada koneksi — data akan dikirim saat online kembali</div>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen" style="
+  min-height: 100vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 2rem 1.25rem; background: var(--milk,#FAF5ED);
+">
+  <div style="width:100%;max-width:360px;">
+    <div style="text-align:center;margin-bottom:2rem;">
+      <div style="width:56px;height:56px;border-radius:50%;background:#3C2010;
+        display:flex;align-items:center;justify-content:center;
+        margin:0 auto 1rem;font-family:'DM Serif Display',serif;
+        color:#F5E6C8;font-size:26px;">C</div>
+      <div style="font-family:'DM Serif Display',serif;font-size:22px;color:#3C2010;margin-bottom:4px;">Cherry Coffee Roastery</div>
+      <div style="font-size:13px;color:#6B3A1F;opacity:0.7;">Goalpara Estate Camp, Sukabumi</div>
+    </div>
+
+    <div style="background:#fff;border-radius:14px;border:1px solid rgba(26,15,8,0.12);padding:1.5rem;">
+      <div style="font-size:14px;font-weight:500;color:#3C2010;margin-bottom:1rem;">Masuk ke sistem</div>
+
+      <div style="margin-bottom:1rem;">
+        <label style="display:block;font-size:12px;font-weight:500;color:#6B3A1F;margin-bottom:6px;">Nama</label>
+        <input type="text" id="login-nama" placeholder="Nama kamu"
+          style="width:100%;padding:11px 14px;border:1px solid rgba(26,15,8,0.12);
+          border-radius:8px;background:#FAF5ED;color:#1A0F08;
+          font-family:'DM Sans',sans-serif;font-size:15px;outline:none;box-sizing:border-box;"
+          onkeydown="if(event.key==='Enter')document.getElementById('login-pin').focus()">
+      </div>
+
+      <div style="margin-bottom:1.25rem;">
+        <label style="display:block;font-size:12px;font-weight:500;color:#6B3A1F;margin-bottom:6px;">PIN</label>
+        <input type="password" id="login-pin" placeholder="••••" inputmode="numeric"
+          style="width:100%;padding:11px 14px;border:1px solid rgba(26,15,8,0.12);
+          border-radius:8px;background:#FAF5ED;color:#1A0F08;
+          font-family:'DM Sans',sans-serif;font-size:20px;outline:none;
+          letter-spacing:6px;box-sizing:border-box;"
+          onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+
+      <div id="login-error" style="display:none;background:#FAEAEA;border:1px solid #E24B4A;
+        border-radius:8px;padding:10px 14px;font-size:13px;color:#A32D2D;margin-bottom:1rem;">
+        Nama atau PIN salah. Coba lagi.
+      </div>
+
+      <button onclick="doLogin()" id="login-btn"
+        style="width:100%;padding:14px;background:#3C2010;color:#F5E6C8;
+        border:none;border-radius:10px;font-family:'DM Sans',sans-serif;
+        font-size:15px;font-weight:500;cursor:pointer;">
+        Masuk
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP (hidden until login) -->
+<div id="main-app" style="display:none;">
+
+<header class="header">
+  <div class="header-inner">
+    <div class="header-brand" style="justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="header-logo">C</div>
+        <div>
+          <div class="header-name">Cherry Coffee Roastery</div>
+          <div class="header-loc" id="header-loc-text">Goalpara Estate Camp, Sukabumi</div>
+        </div>
+      </div>
+      <button onclick="logout()" style="
+        background:rgba(245,230,200,0.12);border:1px solid rgba(245,230,200,0.25);
+        color:rgba(245,230,200,0.8);border-radius:8px;padding:6px 12px;
+        font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;
+        flex-shrink:0;
+      ">Keluar</button>
+    </div>
+    <nav class="nav">
+      <button class="nav-btn active" onclick="show('sales')">Sales</button>
+      <button class="nav-btn" onclick="show('stock')">Ambil Stok</button>
+      <button class="nav-btn" onclick="show('roast')">Roast Log</button>
+      <button class="nav-btn" onclick="show('procurement')">Procurement</button>
+
+    </nav>
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- ═══ SALES ═══ -->
+  <div class="view active" id="view-sales">
+    <div class="view-title">Catat Transaksi</div>
+    <div class="view-sub">Input per transaksi — setiap order customer</div>
+
+    <div class="card">
+      <div class="card-label">Info transaksi</div>
+      <div class="field">
+        <label>Tanggal & waktu</label>
+        <input type="datetime-local" id="s-datetime">
+      </div>
+      <div class="field">
+        <label>Barista</label>
+        <input type="text" id="s-barista" placeholder="Nama kamu">
+      </div>
+      <div class="field">
+        <label>Metode pembayaran</label>
+        <div class="chips" id="pay-c">
+          <div class="chip on" onclick="chip(this,'pay-c')">Cash</div>
+          <div class="chip" onclick="chip(this,'pay-c')">QRIS</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Menu yang dipesan</div>
+      <div class="qty-wrap">
+        <div class="qty-item">
+          <div class="qty-label">
+            Hot Filter
+            <div class="qty-sub" id="hot-sub">Rp 0</div>
+          </div>
+          <div class="qty-controls">
+            <button class="qbtn" onclick="adj('hot',-1)">−</button>
+            <div class="qnum" id="hot-val">0</div>
+            <button class="qbtn" onclick="adj('hot',1)">+</button>
+          </div>
+        </div>
+        <div class="qty-item">
+          <div class="qty-label">
+            Ice Filter
+            <div class="qty-sub" id="ice-sub">Rp 0</div>
+          </div>
+          <div class="qty-controls">
+            <button class="qbtn" onclick="adj('ice',-1)">−</button>
+            <div class="qnum" id="ice-val">0</div>
+            <button class="qbtn" onclick="adj('ice',1)">+</button>
+          </div>
+        </div>
+        <div class="qty-item">
+          <div class="qty-label">
+            Cold Brew
+            <div class="qty-sub" id="cold-sub">Rp 0</div>
+          </div>
+          <div class="qty-controls">
+            <button class="qbtn" onclick="adj('cold',-1)">−</button>
+            <div class="qnum" id="cold-val">0</div>
+            <button class="qbtn" onclick="adj('cold',1)">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="summary">
+        <div class="summary-row">
+          <span class="sl">Total transaksi</span>
+          <span class="sv big" id="s-total">Rp 0</span>
+        </div>
+        <div class="summary-row">
+          <span class="sl">Total cups</span>
+          <span class="sv" id="s-cups">0 cups</span>
+        </div>
+        <div class="summary-row">
+          <span class="sl">Est. beans terpakai</span>
+          <span class="sv" id="s-beans">0 gr</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Catatan</div>
+      <div class="field">
+        <label>Catatan (opsional)</label>
+        <textarea id="s-note" placeholder="Catatan order, request khusus, dll"></textarea>
+      </div>
+    </div>
+
+    <button class="btn-submit" id="s-btn" onclick="submitSales()">Simpan transaksi</button>
+  </div>
+
+  <!-- ═══ STOK ═══ -->
+  <div class="view" id="view-stock">
+    <div class="view-title">Ambil Stok</div>
+    <div class="view-sub">Catat setiap pengambilan beans dari storage ke bar</div>
+
+    <div class="card">
+      <div class="card-label">Detail pengambilan</div>
+      <div class="field">
+        <label>Tanggal & waktu</label>
+        <input type="datetime-local" id="st-dt">
+      </div>
+      <div class="field">
+        <label>Beans</label>
+        <select id="st-beans">
+          <option value="">Memuat...</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Roast level</label>
+        <div class="chips" id="level-c">
+          <div class="chip on" onclick="chip(this,'level-c')">Light</div>
+          <div class="chip" onclick="chip(this,'level-c')">Light-Medium</div>
+          <div class="chip" onclick="chip(this,'level-c')">Medium</div>
+          <div class="chip" onclick="chip(this,'level-c')">Medium-Dark</div>
+          <div class="chip" onclick="chip(this,'level-c')">Dark</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Jumlah diambil (gram)</label>
+        <input type="number" id="st-gram" placeholder="mis. 200" inputmode="decimal" oninput="calcStock()">
+      </div>
+      <div class="field">
+        <label>Diambil oleh</label>
+        <input type="text" id="st-by" placeholder="Nama kamu">
+      </div>
+    </div>
+
+    <div class="card" id="st-summary-card" style="display:none">
+      <div class="summary">
+        <div class="summary-row">
+          <span class="sl">Estimasi cups dari ambilan ini</span>
+          <span class="sv big" id="st-cups">— cups</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="field">
+        <label>Catatan (opsional)</label>
+        <textarea id="st-note" placeholder="Kondisi beans, dll"></textarea>
+      </div>
+    </div>
+
+    <button class="btn-submit" id="st-btn" onclick="submitStock()">Catat pengambilan</button>
+  </div>
+
+  <!-- ═══ ROAST LOG ═══ -->
+  <div class="view" id="view-roast">
+    <div class="view-title">Roast Log</div>
+    <div class="view-sub">Input setelah selesai satu batch roasting</div>
+
+    <div class="card">
+      <div class="card-label">Identifikasi batch</div>
+      <div class="field">
+        <label>Tanggal & waktu</label>
+        <input type="datetime-local" id="r-dt">
+      </div>
+      <div class="field">
+        <label>Batch ID</label>
+        <input type="text" id="r-batch" placeholder="mis. BATCH-002">
+      </div>
+      <div class="field">
+        <label>Roaster</label>
+        <input type="text" id="r-roaster" placeholder="Nama yang ngroasting">
+      </div>
+      <div class="field">
+        <label>Green beans</label>
+        <select id="r-beans" onchange="checkStokBeans()">
+          <option value="">Memuat...</option>
+        </select>
+      </div>
+      <div id="stok-warning" style="display:none;background:var(--color-background-warning,#FFF3CD);border:1px solid #F0AD4E;border-radius:var(--border-radius-sm,6px);padding:10px 14px;font-size:13px;color:#856404;margin-top:8px;">
+        ⚠️ Stok green beans ini tidak cukup atau belum ada di Inventory. Pastikan procurement sudah dicatat sebelum roasting.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Berat & hasil</div>
+      <div class="grid2">
+        <div class="field">
+          <label>Input (kg)</label>
+          <input type="number" id="r-in" step="0.01" placeholder="0.00" inputmode="decimal" oninput="calcRoast()">
+        </div>
+        <div class="field">
+          <label>Output (kg)</label>
+          <input type="number" id="r-out" step="0.01" placeholder="0.00" inputmode="decimal" oninput="calcRoast()">
+        </div>
+      </div>
+      <div class="shrink-badge" id="r-shrink-badge" style="display:none">
+        Shrinkage: <span class="shrink-pct" id="r-shrink-val">—</span>
+      </div>
+      <div class="divider"></div>
+      <div class="field">
+        <label>Roast level</label>
+        <div class="chips" id="rl-c">
+          <div class="chip on" onclick="chip(this,'rl-c')">Light</div>
+          <div class="chip" onclick="chip(this,'rl-c')">Light-Medium</div>
+          <div class="chip" onclick="chip(this,'rl-c')">Medium</div>
+          <div class="chip" onclick="chip(this,'rl-c')">Medium-Dark</div>
+          <div class="chip" onclick="chip(this,'rl-c')">Dark</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Profil suhu</div>
+      <div class="grid2">
+        <div class="field">
+          <label>Charge temp (°C)</label>
+          <input type="number" id="r-charge" placeholder="mis. 200" inputmode="decimal">
+        </div>
+        <div class="field">
+          <label>First crack (°C)</label>
+          <input type="number" id="r-fc" placeholder="mis. 196" inputmode="decimal">
+        </div>
+        <div class="field">
+          <label>Drop temp (°C)</label>
+          <input type="number" id="r-drop" placeholder="mis. 210" inputmode="decimal">
+        </div>
+        <div class="field">
+          <label>Dev time (menit)</label>
+          <input type="number" id="r-dev" step="0.5" placeholder="mis. 2.5" inputmode="decimal">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Evaluasi</div>
+      <div class="field">
+        <label>Cupping score</label>
+        <div class="score-wrap">
+          <input type="range" min="70" max="100" step="0.5" value="82" id="r-score" oninput="scoreUpdate()">
+          <div class="score-val" id="r-score-val">82.0</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Defect (kosongkan jika tidak ada)</label>
+        <input type="text" id="r-defect" placeholder="mis. quaker, tipping, scorching">
+      </div>
+      <div class="field">
+        <label>Catatan batch</label>
+        <textarea id="r-note" placeholder="Observasi, penyesuaian untuk batch berikutnya, dll"></textarea>
+      </div>
+    </div>
+
+    <button class="btn-submit" id="r-btn" onclick="submitRoast()">Simpan roast log</button>
+  </div>
+
+  <!-- ═══ PROCUREMENT ═══ -->
+  <div class="view" id="view-procurement">
+    <div class="view-title">Procurement</div>
+    <div class="view-sub">Catat setiap pembelian bahan baku baru</div>
+
+    <div class="card">
+      <div class="card-label">Detail pembelian</div>
+      <div class="field">
+        <label>Tanggal</label>
+        <input type="date" id="p-date">
+      </div>
+      <div class="field">
+        <label>Lot ID</label>
+        <input type="text" id="p-lot" placeholder="mis. LOT-002">
+      </div>
+      <div class="field">
+        <label>Supplier</label>
+        <div class="chips" id="sup-c">
+          <div class="chip on" onclick="chip(this,'sup-c');toggleSupplierLain(false)">Ciengang</div>
+          <div class="chip" onclick="chip(this,'sup-c');toggleSupplierLain(false)">Selabintana</div>
+          <div class="chip" onclick="chip(this,'sup-c');toggleSupplierLain(true)">Supplier lain</div>
+        </div>
+      </div>
+      <div class="field" id="supplier-lain-field" style="display:none">
+        <label>Nama supplier</label>
+        <input type="text" id="p-supplier-lain" placeholder="Tulis nama supplier">
+      </div>
+      <div class="field">
+        <label>Jenis bahan</label>
+        <div class="chips" id="jenis-c">
+          <div class="chip on" onclick="chip(this,'jenis-c')">Green beans</div>
+          <div class="chip" onclick="chip(this,'jenis-c')">Gabah kering</div>
+          <div class="chip" onclick="chip(this,'jenis-c')">Gabah basah</div>
+          <div class="chip" onclick="chip(this,'jenis-c')">Cherry kopi</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Harga & berat</div>
+      <div class="grid2">
+        <div class="field">
+          <label>Berat (kg)</label>
+          <input type="number" id="p-kg" step="0.1" placeholder="0.0" inputmode="decimal" oninput="calcProcure()">
+        </div>
+        <div class="field">
+          <label>Harga / kg (Rp)</label>
+          <input type="number" id="p-price" placeholder="200000" inputmode="decimal" oninput="calcProcure()">
+        </div>
+      </div>
+      <div class="summary" id="p-summary" style="display:none">
+        <div class="summary-row">
+          <span class="sl">Total biaya pembelian</span>
+          <span class="sv big" id="p-total">Rp —</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="field">
+        <label>Nama beans / keterangan lot</label>
+        <input type="text" id="p-name" placeholder="mis. Sukabumi Natural — Lot Februari">
+      </div>
+      <div class="field">
+        <label>Catatan (opsional)</label>
+        <textarea id="p-note" placeholder="Kondisi fisik, proses, asal petani, dll"></textarea>
+      </div>
+    </div>
+
+    <button class="btn-submit" id="p-btn" onclick="submitProcurement()">Catat pembelian</button>
+  </div>
+
+</main>
+
+<div class="toast-wrap">
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+// CONFIG — ganti dengan URL Google Apps Script kamu
+// ════════════════════════════════════════════════════════
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwElnXdrv7gEOsbeNMZh9NCahuTYB47iKYY1YotP-DUw3rdeRsgopZFlL4JCKR8GivZ/exec';
+
+// ════════════════════════════════════════════════════════
+// HARGA MENU
+// ════════════════════════════════════════════════════════
+const PRICES = { hot: 28000, ice: 28000, cold: 0 };
+const DOSES  = { hot: 13, ice: 13, cold: 90 };
+const DOSE_FILTER = 13; // gram per cup
+const DOSE_COLDBREW = 90; // gram per cup
+const qty = { hot: 0, ice: 0, cold: 0 };
+
+// ════════════════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════════════════
+function show(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+  // Match nav button by onclick attribute instead of relying on event context
+  const tabs = ['sales', 'stock', 'roast', 'procurement'];
+  const navBtns = document.querySelectorAll('.nav-btn');
+  navBtns.forEach((btn, i) => {
+    if (tabs[i] === id) btn.classList.add('active');
+  });
+}
+
+// ════════════════════════════════════════════════════════
+// CHIPS
+// ════════════════════════════════════════════════════════
+function chip(el, groupId) {
+  document.querySelectorAll('#' + groupId + ' .chip').forEach(c => c.classList.remove('on'));
+  el.classList.add('on');
+}
+function getChip(groupId) {
+  const el = document.querySelector('#' + groupId + ' .chip.on');
+  return el ? el.textContent.trim() : '';
+}
+
+// ════════════════════════════════════════════════════════
+// SALES
+// ════════════════════════════════════════════════════════
+function adj(key, d) {
+  qty[key] = Math.max(0, qty[key] + d);
+  updateSales();
+}
+function updateSales() {
+  ['hot','ice','cold'].forEach(k => {
+    document.getElementById(k + '-val').textContent = qty[k];
+    const sub = qty[k] * PRICES[k];
+    document.getElementById(k + '-sub').textContent = sub > 0 ? 'Rp ' + sub.toLocaleString('id-ID') : '';
+  });
+  const total = qty.hot * PRICES.hot + qty.ice * PRICES.ice + qty.cold * PRICES.cold;
+  const cups = qty.hot + qty.ice + qty.cold;
+  const beans = qty.hot * DOSES.hot + qty.ice * DOSES.ice + qty.cold * DOSES.cold;
+  document.getElementById('s-total').textContent = 'Rp ' + total.toLocaleString('id-ID');
+  document.getElementById('s-cups').textContent = cups + ' cups';
+  document.getElementById('s-beans').textContent = beans.toLocaleString('id-ID') + ' gr';
+}
+
+// ════════════════════════════════════════════════════════
+// STOCK
+// ════════════════════════════════════════════════════════
+function calcStock() {
+  const g = parseFloat(document.getElementById('st-gram').value) || 0;
+  const card = document.getElementById('st-summary-card');
+  if (g > 0) {
+    const cups = Math.floor(g / DOSE_FILTER);
+    document.getElementById('st-cups').textContent = '~' + cups + ' cups';
+    card.style.display = '';
+  } else {
+    card.style.display = 'none';
+  }
+}
+
+function toggleSupplierLain(show) {
+  const field = document.getElementById('supplier-lain-field');
+  if (field) field.style.display = show ? '' : 'none';
+  if (!show) { const inp = document.getElementById('p-supplier-lain'); if (inp) inp.value = ''; }
+}
+
+// Stok inventory cache (diisi dari API atau default kosong)
+let inventoryStok = {};
+
+function checkStokBeans() {
+  const beansId = document.getElementById('r-beans').value;
+  const warning = document.getElementById('stok-warning');
+  const submitBtn = document.getElementById('r-btn');
+  if (!beansId) {
+    warning.style.display = 'none';
+    submitBtn.disabled = false;
+    return;
+  }
+  const stok = inventoryStok[beansId];
+  if (stok !== undefined) {
+    if (stok <= 0) {
+      warning.style.display = '';
+      warning.innerHTML = '⚠️ Stok green beans <strong>' + beansId + '</strong> kosong (' + stok + ' kg). Tidak bisa roasting — catat procurement dulu.';
+      submitBtn.disabled = true;
+    } else {
+      warning.style.display = '';
+      warning.style.background = 'var(--color-background-success, #D5F5E3)';
+      warning.style.borderColor = '#27AE60';
+      warning.style.color = '#1E8449';
+      warning.innerHTML = '✅ Stok tersedia: <strong>' + stok.toFixed(2) + ' kg</strong>';
+      submitBtn.disabled = false;
+    }
+  } else {
+    // Tidak ada di inventory — fetch ulang
+    warning.style.display = '';
+    warning.style.background = 'var(--color-background-warning, #FFF3CD)';
+    warning.style.borderColor = '#F0AD4E';
+    warning.style.color = '#856404';
+    warning.innerHTML = '⚠️ Beans ini belum ada di Inventory. Pastikan procurement sudah dicatat.';
+    submitBtn.disabled = true;
+    // Coba fetch ulang
+    const cbName = 'stok_' + Date.now();
+    window[cbName] = (res) => {
+      delete window[cbName];
+      if (res && res.success && res.data) {
+        inventoryStok = res.data;
+        checkStokBeans();
+      }
+    };
+    const script = document.createElement('script');
+    script.src = SCRIPT_URL + '?action=inventory&callback=' + cbName;
+    script.onerror = () => { delete window[cbName]; };
+    document.body.appendChild(script);
+    setTimeout(() => { if (window[cbName]) { delete window[cbName]; } }, 5000);
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// ROAST
+// ════════════════════════════════════════════════════════
+function calcRoast() {
+  const inp = parseFloat(document.getElementById('r-in').value) || 0;
+  const out = parseFloat(document.getElementById('r-out').value) || 0;
+  const badge = document.getElementById('r-shrink-badge');
+  if (inp > 0 && out > 0 && out < inp) {
+    const pct = ((inp - out) / inp * 100).toFixed(1);
+    document.getElementById('r-shrink-val').textContent = pct + '%';
+    badge.style.display = '';
+    // update slider gradient
+    const slider = document.getElementById('r-score');
+    const val = ((parseFloat(slider.value) - 70) / 30 * 100).toFixed(0);
+    slider.style.background = `linear-gradient(to right, var(--caramel) ${val}%, var(--fog2) ${val}%)`;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+function scoreUpdate() {
+  const v = parseFloat(document.getElementById('r-score').value).toFixed(1);
+  document.getElementById('r-score-val').textContent = v;
+  const pct = ((parseFloat(v) - 70) / 30 * 100).toFixed(0);
+  document.getElementById('r-score').style.background =
+    `linear-gradient(to right, var(--caramel) ${pct}%, var(--fog2) ${pct}%)`;
+}
+
+// ════════════════════════════════════════════════════════
+// PROCUREMENT
+// ════════════════════════════════════════════════════════
+function calcProcure() {
+  const kg = parseFloat(document.getElementById('p-kg').value) || 0;
+  const price = parseFloat(document.getElementById('p-price').value) || 0;
+  const summary = document.getElementById('p-summary');
+  if (kg > 0 && price > 0) {
+    document.getElementById('p-total').textContent = 'Rp ' + Math.round(kg * price).toLocaleString('id-ID');
+    summary.style.display = '';
+  } else {
+    summary.style.display = 'none';
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// TOAST
+// ════════════════════════════════════════════════════════
+function showToast(msg, isErr) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (isErr ? ' err' : '');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ════════════════════════════════════════════════════════
+// SUBMIT — kirim ke Google Sheets
+// ════════════════════════════════════════════════════════
+function setLoading(btnId, loading) {
+  const btn = document.getElementById(btnId);
+  btn.disabled = loading;
+  btn.textContent = loading ? 'Menyimpan...' : btn.dataset.label;
+}
+
+async function sendData(payload, btnId, successMsg) {
+  const btn = document.getElementById(btnId);
+  btn.disabled = true;
+  const orig = btn.textContent;
+  btn.textContent = 'Menyimpan...';
+  try {
+    // Encode payload as URL param — standard GAS CORS workaround
+    const encoded = encodeURIComponent(JSON.stringify(payload));
+    const url = SCRIPT_URL + '?data=' + encoded;
+    await new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      const cbName = 'cb_' + Date.now();
+      window[cbName] = (res) => {
+        delete window[cbName];
+        document.body.removeChild(script);
+        resolve(res);
+      };
+      script.onerror = () => {
+        delete window[cbName];
+        document.body.removeChild(script);
+        reject(new Error('Network error'));
+      };
+      script.src = url + '&callback=' + cbName;
+      document.body.appendChild(script);
+      // Fallback timeout resolve (GAS sometimes doesn't call callback)
+      setTimeout(() => { resolve({ success: true }); }, 5000);
+    });
+    showToast(successMsg);
+  } catch (err) {
+    showToast('Gagal — cek koneksi internet', true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = orig;
+  }
+}
+
+function submitSales() {
+  const dt = document.getElementById('s-datetime').value;
+  const barista = document.getElementById('s-barista').value.trim();
+  const payMethod = getChip('pay-c');
+  if (!dt || !barista) { showToast('Isi tanggal & nama barista dulu', true); return; }
+  const total = qty.hot * PRICES.hot + qty.ice * PRICES.ice + qty.cold * PRICES.cold;
+  const cups = qty.hot + qty.ice + qty.cold;
+  if (cups === 0) { showToast('Pilih minimal 1 menu dulu', true); return; }
+  const beans = qty.hot * DOSES.hot + qty.ice * DOSES.ice + qty.cold * DOSES.cold;
+  sendData({ type: 'sales', datetime: dt,
+    tanggal: dt.slice(0,10), barista, payMethod,
+    hot: qty.hot, ice: qty.ice, cold: qty.cold,
+    totalCups: cups, totalRevenue: total, beansGram: beans,
+    avgPrice: total > 0 ? Math.round(total/cups) : 0,
+    beansId: 'BNS-01',
+    catatan: document.getElementById('s-note').value || ''
+  }, 's-btn', 'Transaksi tersimpan!');
+  setTimeout(() => {
+    qty.hot = 0; qty.ice = 0; qty.cold = 0;
+    updateSales();
+    document.getElementById('s-note').value = '';
+    const now = new Date();
+    const local = new Date(now - now.getTimezoneOffset() * 60000).toISOString().slice(0,16);
+    document.getElementById('s-datetime').value = local;
+  }, 600);
+}
+
+function submitStock() {
+  const beans = document.getElementById('st-beans').value;
+  const gram = document.getElementById('st-gram').value;
+  const by = document.getElementById('st-by').value.trim();
+  if (!beans || !gram || !by) { showToast('Lengkapi semua field wajib', true); return; }
+  const cups = Math.floor(parseFloat(gram) / DOSE_FILTER);
+  const beansIdStock = beans.split('—')[0].trim().split(' ')[0].trim();
+  sendData({ type: 'stock', datetime: document.getElementById('st-dt').value,
+    beans, beansId: beansIdStock, roastLevel: getChip('level-c'), gram: parseFloat(gram),
+    estimasiCups: cups, diambilOleh: by,
+    catatan: document.getElementById('st-note').value || ''
+  }, 'st-btn', 'Pengambilan stok tercatat');
+}
+
+function submitRoast() {
+  const batch   = document.getElementById('r-batch').value.trim();
+  const roaster = document.getElementById('r-roaster').value.trim();
+  const beans   = document.getElementById('r-beans').value;
+  const inpVal  = document.getElementById('r-in').value.trim();
+  const outVal  = document.getElementById('r-out').value.trim();
+  if (!batch)  { showToast('Isi Batch ID dulu', true); return; }
+  if (!beans)  { showToast('Pilih beans dulu', true); return; }
+  if (!inpVal) { showToast('Isi berat input (kg)', true); return; }
+  if (!outVal) { showToast('Isi berat output (kg)', true); return; }
+  const inpKg  = parseFloat(inpVal);
+  const outKg  = parseFloat(outVal);
+  const shrink = inpKg > 0 ? ((inpKg - outKg) / inpKg * 100).toFixed(1) + '%' : '0%';
+  const beansId = beans.split('—')[0].trim().split(' ')[0].trim();
+  const payload = {
+    type:         'roast',
+    datetime:     document.getElementById('r-dt').value,
+    batchId:      batch,
+    roaster:      roaster,
+    beans:        beans,
+    beansId:      beansId,
+    inputKg:      inpKg,
+    outputKg:     outKg,
+    shrinkage:    shrink,
+    roastLevel:   getChip('rl-c'),
+    chargeTemp:   document.getElementById('r-charge').value || '',
+    firstCrack:   document.getElementById('r-fc').value || '',
+    dropTemp:     document.getElementById('r-drop').value || '',
+    devTime:      document.getElementById('r-dev').value || '',
+    cuppingScore: document.getElementById('r-score').value,
+    defect:       document.getElementById('r-defect').value || '',
+    catatan:      document.getElementById('r-note').value || ''
+  };
+  sendData(payload, 'r-btn', 'Roast log tersimpan');
+}
+
+function submitProcurement() {
+  const lot = document.getElementById('p-lot').value.trim();
+  const kg = document.getElementById('p-kg').value;
+  const price = document.getElementById('p-price').value;
+  if (!lot || !kg || !price) { showToast('Isi Lot ID, berat & harga', true); return; }
+  const supplierChip = getChip('sup-c');
+  const supplierVal = supplierChip === 'Supplier lain'
+    ? (document.getElementById('p-supplier-lain').value.trim() || 'Supplier lain')
+    : supplierChip;
+  sendData({ type: 'procurement', tanggal: document.getElementById('p-date').value,
+    lotId: lot, supplier: supplierVal, jenis: getChip('jenis-c'),
+    kg: parseFloat(kg), hargaPerKg: parseFloat(price),
+    totalBiaya: Math.round(parseFloat(kg) * parseFloat(price)),
+    namaBeans: document.getElementById('p-name').value,
+    catatan: document.getElementById('p-note').value }, 'p-btn', 'Pembelian tercatat');
+}
+
+// ════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════
+// ── MASTER DATA LOADER ──────────────────────────────────────────────
+let masterData = { beans: [], menus: [], suppliers: [] };
+
+function loadMasterData() {
+  populateFallback();
+  // Load master data
+  const cbName = 'mdcb_' + Date.now();
+  window[cbName] = (res) => {
+    delete window[cbName];
+    if (res && res.success && res.data && res.data.beans && res.data.beans.length > 0) {
+      masterData = res.data;
+      populateDropdowns();
+    }
+  };
+  const script = document.createElement('script');
+  script.src = SCRIPT_URL + '?action=masterdata&callback=' + cbName;
+  script.onerror = () => { delete window[cbName]; };
+  document.body.appendChild(script);
+  setTimeout(() => { if (window[cbName]) { delete window[cbName]; } }, 8000);
+
+  // Load inventory stok sekaligus
+  const cbStok = 'stok_' + Date.now();
+  window[cbStok] = (res) => {
+    delete window[cbStok];
+    if (res && res.success && res.data) {
+      inventoryStok = res.data;
+    }
+  };
+  const scriptStok = document.createElement('script');
+  scriptStok.src = SCRIPT_URL + '?action=inventory&callback=' + cbStok;
+  scriptStok.onerror = () => { delete window[cbStok]; };
+  document.body.appendChild(scriptStok);
+  setTimeout(() => { if (window[cbStok]) { delete window[cbStok]; } }, 8000);
+}
+
+function populateDropdowns() {
+  // ── Beans dropdown ──
+  const beanSelects = ['st-beans', 'r-beans'];
+  beanSelects.forEach(selId => {
+    const sel = document.getElementById(selId);
+    if (!sel) return;
+    sel.innerHTML = '<option value="">Pilih beans</option>';
+    masterData.beans.forEach(b => {
+      const opt = document.createElement('option');
+      opt.value = b.id;
+      opt.textContent = b.id + ' — ' + b.nama + (b.origin ? ' (' + b.origin + ')' : '');
+      sel.appendChild(opt);
+    });
+  });
+
+  // ── Supplier chips ──
+  const supChips = document.getElementById('sup-c');
+  if (supChips && masterData.suppliers.length > 0) {
+    supChips.innerHTML = '';
+    masterData.suppliers.forEach((s, i) => {
+      const div = document.createElement('div');
+      div.className = 'chip' + (i === 0 ? ' on' : '');
+      div.textContent = s.nama;
+      div.onclick = function() { chip(this, 'sup-c'); toggleSupplierLain(false); };
+      supChips.appendChild(div);
+    });
+    const other = document.createElement('div');
+    other.className = 'chip';
+    other.textContent = 'Supplier lain';
+    other.onclick = function() { chip(this, 'sup-c'); toggleSupplierLain(true); };
+    supChips.appendChild(other);
+  }
+
+  // ── Menu: update harga, dose, dan label di sales form ──
+  if (masterData.menus.length > 0) {
+    masterData.menus.forEach(m => {
+      if (m.id === 'MNU-01') {
+        PRICES.hot = m.harga || 28000;
+        DOSES.hot = m.doseStd || 13;
+        const lbl = document.querySelector('.qty-item:nth-child(1) .qty-label');
+        if (lbl) lbl.childNodes[0].textContent = m.nama + ' ';
+      }
+      if (m.id === 'MNU-02') {
+        PRICES.ice = m.harga || 28000;
+        DOSES.ice = m.doseStd || 13;
+        const lbl = document.querySelector('.qty-item:nth-child(2) .qty-label');
+        if (lbl) lbl.childNodes[0].textContent = m.nama + ' ';
+      }
+      if (m.id === 'MNU-03') {
+        PRICES.cold = m.harga || 0;
+        DOSES.cold = m.doseStd || 90;
+        const lbl = document.querySelector('.qty-item:nth-child(3) .qty-label');
+        if (lbl) lbl.childNodes[0].textContent = m.nama + ' ';
+      }
+    });
+    updateSales();
+  }
+}
+
+function populateFallback() {
+  const beansData = [
+    { id: 'BNS-01', nama: 'Sukabumi Natural', origin: 'Goalpara, Sukabumi' },
+    { id: 'BNS-02', nama: 'Sukabumi Honey', origin: 'Selabintana, Sukabumi' },
+    { id: 'BNS-03', nama: 'Sukabumi Uhuy', origin: 'Kadudampit' },
+    { id: 'BNS-04', nama: 'Sukabumi Ngagiberan', origin: 'Parakansalak' },
+  ];
+  const suppliersData = [
+    { id: 'SUP-01', nama: 'Ciengang' },
+    { id: 'SUP-02', nama: 'Selabintana' },
+  ];
+  const menusData = [
+    { id: 'MNU-01', nama: 'Hot Filter', harga: 28000, doseStd: 13 },
+    { id: 'MNU-02', nama: 'Ice Filter', harga: 28000, doseStd: 13 },
+    { id: 'MNU-03', nama: 'Cold Brew', harga: 30000, doseStd: 90 },
+  ];
+  masterData = { beans: beansData, suppliers: suppliersData, menus: menusData };
+  populateDropdowns();
+}
+
+
+// ════════════════════════════════════════════════════════════════════
+// AUTH SYSTEM
+// ════════════════════════════════════════════════════════════════════
+const SESSION_KEY = 'cherry_ops_session';
+const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 jam
+
+// Role permissions
+const ROLE_TABS = {
+  superadmin: ['sales', 'stock', 'roast', 'procurement'],
+  roaster:    ['sales', 'stock', 'roast'],
+  barista:    ['sales', 'stock'],
+};
+
+const TAB_LABELS = {
+  sales:       'Sales',
+  stock:       'Ambil Stok',
+  roast:       'Roast Log',
+  procurement: 'Procurement',
+};
+
+let currentUser = null;
+
+function checkSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return false;
+    const session = JSON.parse(raw);
+    if (Date.now() > session.expiry) {
+      localStorage.removeItem(SESSION_KEY);
+      return false;
+    }
+    currentUser = session;
+    return true;
+  } catch(e) { return false; }
+}
+
+function saveSession(nama, role) {
+  const session = {
+    nama, role,
+    expiry: Date.now() + SESSION_DURATION
+  };
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  currentUser = session;
+}
+
+function doLogin() {
+  const nama = document.getElementById('login-nama').value.trim();
+  const pin  = document.getElementById('login-pin').value.trim();
+  const btn  = document.getElementById('login-btn');
+  const err  = document.getElementById('login-error');
+
+  if (!nama || !pin) { err.textContent = 'Isi nama dan PIN dulu.'; err.style.display = ''; return; }
+
+  btn.textContent = 'Memverifikasi...';
+  btn.disabled = true;
+  err.style.display = 'none';
+
+  const cbName = 'login_' + Date.now();
+  window[cbName] = (res) => {
+    delete window[cbName];
+    btn.textContent = 'Masuk';
+    btn.disabled = false;
+    if (res && res.success) {
+      saveSession(res.nama, res.role);
+      showApp();
+    } else {
+      err.textContent = 'Nama atau PIN salah. Coba lagi.';
+      err.style.display = '';
+      document.getElementById('login-pin').value = '';
+    }
+  };
+
+  const script = document.createElement('script');
+  script.src = SCRIPT_URL + '?action=login&nama=' + encodeURIComponent(nama) + '&pin=' + encodeURIComponent(pin) + '&callback=' + cbName;
+  script.onerror = () => {
+    delete window[cbName];
+    btn.textContent = 'Masuk';
+    btn.disabled = false;
+    err.textContent = 'Tidak bisa terhubung ke server. Cek koneksi.';
+    err.style.display = '';
+  };
+  document.body.appendChild(script);
+  setTimeout(() => {
+    if (window[cbName]) {
+      delete window[cbName];
+      btn.textContent = 'Masuk';
+      btn.disabled = false;
+      err.textContent = 'Timeout. Cek koneksi internet.';
+      err.style.display = '';
+    }
+  }, 10000);
+}
+
+function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = '';
+
+  // Tampilkan nama user di header
+  const loc = document.getElementById('header-loc-text');
+  if (loc && currentUser) {
+    loc.textContent = currentUser.nama + ' · ' + currentUser.role;
+  }
+
+  // Filter nav tabs sesuai role
+  const allowed = ROLE_TABS[currentUser.role] || ['sales'];
+  const navBtns = document.querySelectorAll('.nav-btn');
+  const views = ['sales', 'stock', 'roast', 'procurement'];
+
+  navBtns.forEach((btn, i) => {
+    const tabId = views[i];
+    if (!allowed.includes(tabId)) {
+      btn.style.display = 'none';
+    }
+  });
+
+  // Tampilkan tab pertama yang diizinkan
+  show(allowed[0]);
+  loadMasterData();
+}
+
+function logout() {
+  localStorage.removeItem(SESSION_KEY);
+  currentUser = null;
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-nama').value = '';
+  document.getElementById('login-pin').value = '';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const now = new Date();
+  const local = new Date(now - now.getTimezoneOffset() * 60000).toISOString().slice(0,16);
+  const date = local.slice(0,10);
+  ['r-dt','st-dt','s-datetime'].forEach(id => { const el = document.getElementById(id); if(el) el.value = local; });
+  ['p-date'].forEach(id => { const el = document.getElementById(id); if(el) el.value = date; });
+  const sdt = document.getElementById('s-datetime'); if(sdt) sdt.value = local;
+  scoreUpdate();
+  updateSales();
+
+  // Cek session — kalau sudah login, langsung tampilkan app
+  if (checkSession()) {
+    showApp();
+  }
+  // Kalau belum login, login screen sudah tampil by default
+
+  window.addEventListener('online', () => { document.getElementById('offline-bar').style.display = 'none'; });
+  window.addEventListener('offline', () => { document.getElementById('offline-bar').style.display = 'block'; });
+});
+</script>
+</div><!-- end main-app -->
+</body>
+</html>
