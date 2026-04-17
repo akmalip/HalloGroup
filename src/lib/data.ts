@@ -2,8 +2,7 @@ export const SITE = {
   name: "Hallo Group",
   tagline: "Creative Lifestyle Ecosystem",
   taglineShort: "Grow With Hallo",
-  description:
-    "Creative consulting firm and end-to-end holding company building a creative ecosystem across Indonesia.",
+  description: "Creative consulting firm and end-to-end holding company building a creative ecosystem across Indonesia.",
   email: "hello@hallogroup.id",
   location: "Sukabumi, West Java",
   legalName: "CV. Kreativitas Anak Bangsa",
@@ -32,45 +31,55 @@ export const CLUSTERS = [
     idx: "01",
     name: "Creative &\nCommunication",
     slug: "creative-communication",
-    networks: ["Hallo Creative", "Hallo Studios", "Moula", "One Per Zero"],
+    networks: [
+      { name: "Hallo Creative", slug: "hallo-creative" },
+      { name: "Hallo Studios", slug: "hallo-studios" },
+      { name: "Moula", slug: "moula" },
+      { name: "One Per Zero", slug: "one-per-zero" },
+    ],
   },
   {
     idx: "02",
     name: "Experiential\n& Event",
     slug: "experiential-event",
-    networks: ["Hallo Experience"],
+    networks: [
+      { name: "Hallo Experience", slug: "hallo-experience" },
+    ],
   },
   {
     idx: "03",
     name: "Lifestyle, Retail\n& Hospitality",
     slug: "lifestyle-retail-hospitality",
-    networks: ["Stockpiles", "Campervan", "Pusat Oleh-Oleh", "Cherry Coffee Roastery"],
+    networks: [
+      { name: "Stockpiles", slug: "stockpiles" },
+      { name: "Campervan", slug: "campervan" },
+      { name: "Pusat Oleh-Oleh", slug: "pusat-oleh-oleh" },
+      { name: "Cherry Coffee Roastery", slug: "cherry-coffee-roastery" },
+    ],
   },
   {
     idx: "04",
     name: "Learning &\nTalent Dev",
     slug: "learning-talent",
-    networks: ["YTDP"],
+    networks: [
+      { name: "YTDP", slug: "ytdp" },
+    ],
   },
   {
     idx: "05",
     name: "Media\n& IP",
     slug: "media-ip",
-    networks: ["Sukabumi Discovery", "Journ"],
+    networks: [
+      { name: "Sukabumi Discovery", slug: "sukabumi-discovery" },
+      { name: "Journ", slug: "journ" },
+    ],
   },
 ];
 
 export const MARQUEE_NETWORKS = [
-  "Hallo Creative",
-  "One Per Zero",
-  "Moula",
-  "Hallo Experience",
-  "Stockpiles",
-  "Cherry Coffee Roastery",
-  "YTDP",
-  "Sukabumi Discovery",
-  "Journ",
-  "Hallo Studios",
+  "Hallo Creative", "One Per Zero", "Moula", "Hallo Experience",
+  "Stockpiles", "Cherry Coffee Roastery", "YTDP",
+  "Sukabumi Discovery", "Journ", "Hallo Studios",
 ];
 
 export const NAV_LINKS = [
