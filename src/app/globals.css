@@ -1,0 +1,47 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --green: #5EF220;
+  --black: #0F0F0F;
+  --white: #ffffff;
+  --dim: rgba(255, 255, 255, 0.28);
+  --line: rgba(255, 255, 255, 0.07);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { background: var(--black); color: var(--white); font-family: 'Space Grotesk', sans-serif; cursor: none; }
+
+/* Homepage: locked scroll for sticky sections */
+html[data-page="home"] { overflow: hidden; height: 100vh; }
+html[data-page="home"] body { overflow: hidden; height: 100vh; }
+
+/* Inner pages: freely scrollable */
+html[data-page="inner"] { overflow-x: hidden; overflow-y: auto; height: auto; }
+html[data-page="inner"] body { overflow: visible; height: auto; min-height: 100vh; }
+
+body { background: var(--black); color: var(--white); font-family: 'Space Grotesk', sans-serif; }
+
+.cursor { width: 8px; height: 8px; background: var(--green); border-radius: 50%; position: fixed; pointer-events: none; z-index: 9999; top: -20px; left: -20px; mix-blend-mode: exclusion; transition: width .3s, height .3s; }
+.cursor-ring { width: 34px; height: 34px; border: 1px solid rgba(94,242,32,.3); border-radius: 50%; position: fixed; pointer-events: none; z-index: 9998; top: -20px; left: -20px; transition: opacity .2s; }
+
+.text-outline { color: transparent; -webkit-text-stroke: 1.5px rgba(255,255,255,.22); }
+.text-outline-strong { color: transparent; -webkit-text-stroke: 1px rgba(255,255,255,.04); }
+
+@keyframes marquee { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+.marquee-track { animation: marquee 28s linear infinite; }
+
+@keyframes slideIndicator { 0%{left:-40%} 100%{left:140%} }
+.scroll-thumb { animation: slideIndicator 2s ease-in-out infinite; }
+
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+.logo-dot { animation: blink 2.5s ease-in-out infinite; }
+
+.cluster-line { position:absolute; top:0; left:0; right:0; height:2px; background:var(--green); transform:scaleX(0); transform-origin:left; transition:transform .5s cubic-bezier(.4,0,.2,1); }
+.cluster-card:hover .cluster-line { transform:scaleX(1); }
+.pillar-line { position:absolute; top:0; left:0; right:0; height:2px; background:var(--green); transform:scaleX(0); transform-origin:left; transition:transform .4s ease; }
+.pillar-card:hover .pillar-line { transform:scaleX(1); }
