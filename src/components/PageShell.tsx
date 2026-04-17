@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ReactNode } from "react";
 import { NAV_LINKS } from "@/lib/data";
+import ScrollableBody from "@/components/ScrollableBody";
 
 export default function PageShell({
   children,
@@ -21,6 +22,7 @@ export default function PageShell({
         overflowX: "hidden",
       }}
     >
+      <ScrollableBody />
       {/* Nav */}
       <nav
         style={{
