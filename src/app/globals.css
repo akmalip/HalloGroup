@@ -23,6 +23,13 @@ body {
   cursor: none;
 }
 
+/* Inner pages need scroll */
+body.scrollable {
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: auto;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
