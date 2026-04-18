@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="id" style="background:#F2EFE8;color:#181818;cursor:auto;overflow:auto;height:auto">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Destinasi — Sukabumi Discovery</title>
+<link rel="stylesheet" href="/SukabumiDiscovery/shared.css">
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="firebase-config.js"></script>
+<style>
+.dest-hero {
+  padding: 100px 40px 0; min-height: 70vh;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  position: relative; overflow: hidden;
+}
+.dest-hero-bg {
+  position: absolute; inset: 0; z-index: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: clamp(160px, 25vw, 280px); opacity: 0.18;
+}
+.dest-hero-inner { position: relative; z-index: 1; max-width: var(--max-w); margin: 0 auto; width: 100%; padding-bottom: 50px; }
+.dest-hero h1 { font-family: var(--font-display); font-size: clamp(38px, 6vw, 80px); font-weight: 800; line-height: 1; letter-spacing: -0.03em; }
+.dest-hero-meta { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin: 16px 0 24px; }
+.dest-hero-meta span { font-family: var(--font-display); font-size: 13px; font-weight: 600; color: #555; }
+.dest-hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+.dest-body { max-width: var(--max-w); margin: 0 auto; padding: 60px 40px; display: grid; grid-template-columns: 1fr 360px; gap: 60px; }
+.dest-main { }
+.dest-sidebar { }
+
+.dest-section-title { font-family: var(--font-display); font-size: 22px; font-weight: 800; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid var(--dark); }
+.dest-desc { font-size: 15px; line-height: 1.8; color: #444; margin-bottom: 40px; }
+
+.tips-list { list-style: none; margin-bottom: 40px; }
+.tips-list li { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid #eee; font-size: 14px; color: #444; line-height: 1.5; align-items: flex-start; }
+.tips-list li::before { content: '✦'; color: var(--orange); font-size: 12px; margin-top: 3px; flex-shrink: 0; }
+
+.gallery { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 40px; }
+.gallery-item { border-radius: 14px; overflow: hidden; border: 2px solid var(--dark); }
+.gallery-item .gi { height: 120px; display: flex; align-items: center; justify-content: center; font-size: 40px; }
+
+/* Sidebar */
+.info-box { border: 2px solid var(--dark); border-radius: 20px; padding: 24px; margin-bottom: 20px; }
+.info-box h4 { font-family: var(--font-display); font-size: 15px; font-weight: 700; margin-bottom: 14px; }
+.info-row { display: flex; gap: 10px; padding: 9px 0; border-bottom: 1px solid #eee; align-items: flex-start; }
+.info-row:last-child { border: none; }
+.info-row .ir-icon { font-size: 18px; flex-shrink: 0; width: 24px; text-align: center; }
+.info-row .ir-label { font-size: 11px; color: #999; font-family: var(--font-display); font-weight: 700; text-transform: uppercase; margin-bottom: 2px; }
+.info-row .ir-val { font-size: 13px; color: var(--dark); line-height: 1.4; }
+
+.map-box { border: 2px solid var(--dark); border-radius: 20px; overflow: hidden; margin-bottom: 20px; }
+.map-placeholder { height: 220px; background: var(--cream); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; font-size: 40px; }
+.map-placeholder span { font-family: var(--font-display); font-size: 13px; font-weight: 600; color: #888; }
+.map-placeholder a { font-size: 13px; color: var(--blue); font-family: var(--font-display); font-weight: 700; }
+
+.nearby-list { display: flex; flex-direction: column; gap: 10px; }
+.nearby-item { display: flex; gap: 12px; align-items: center; padding: 12px; border: 2px solid #eee; border-radius: 14px; text-decoration: none; color: var(--dark); transition: all 0.2s; }
+.nearby-item:hover { border-color: var(--dark); background: var(--cream); }
+.nearby-item .ni-icon { font-size: 28px; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1.5px solid var(--dark); }
+.nearby-item .ni-info h5 { font-family: var(--font-display); font-size: 13px; font-weight: 700; }
+.nearby-item .ni-info span { font-size: 11px; color: #888; }
+
+.review-card { border: 2px solid #eee; border-radius: 16px; padding: 16px; margin-bottom: 12px; }
+.review-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.review-av { width: 32px; height: 32px; border-radius: 50%; background: var(--blue); color: white; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 12px; font-weight: 700; }
+.review-name { font-family: var(--font-display); font-size: 13px; font-weight: 700; }
+.review-date { font-size: 11px; color: #aaa; margin-top: 2px; }
+.review-body { font-size: 13px; color: #555; line-height: 1.6; }
+.add-review { border: 2px dashed #ccc; border-radius: 16px; padding: 16px; text-align: center; cursor: pointer; transition: all 0.2s; margin-top: 4px; color: #888; font-family: var(--font-display); font-size: 13px; font-weight: 600; }
+.add-review:hover { border-color: var(--blue); color: var(--blue); background: #f0f3ff; }
+
+@media (max-width: 900px) {
+  .dest-body { grid-template-columns: 1fr; padding: 40px 24px; }
+  .dest-sidebar { order: -1; }
+  .dest-hero { padding: 90px 24px 0; }
+  .gallery { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 480px) {
+  .dest-hero { min-height: auto; padding: 80px 20px 0; }
+  .gallery { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body style="background:#F2EFE8;color:#181818;overflow-x:hidden;cursor:auto" style="background:#F2EFE8;color:#181818;overflow-x:hidden;cursor:auto">
+<script src="shared.js"></script>
+<script>renderNav('ttd');</script>
+
+<div id="destContent"><!-- rendered by JS --></div>
+
+<script>
+const destinations = {
+  ciletuh: {
+    name: 'Geopark Ciletuh', emoji: '🏞️', bgColor: 'bg-teal',
+    loc: 'Ciletuh-Palabuhanratu, Kab. Sukabumi', category: 'Alam / Geopark', rating: 4.9, reviews: 1240,
+    tags: ['UNESCO Global Geopark','Alam','Amfiteater','Curug','Pantai'],
+    desc: `Geopark Ciletuh-Palabuhanratu adalah salah satu keajaiban alam paling spektakuler di Indonesia. Ditetapkan sebagai UNESCO Global Geopark pada 2018, kawasan ini menawarkan pemandangan amfiteater alam yang terbentuk dari proses geologi jutaan tahun lalu — berupa tebing-tebing curam setinggi ratusan meter yang menghadap ke Samudra Hindia.
+    
+Yang bikin Ciletuh beda dari destinasi lain adalah kombinasi lengkapnya: ada air terjun (curug) yang dramatis, pantai-pantai bersih yang tenang, hamparan sawah di atas bukit, dan desa-desa nelayan yang autentik. Semua bisa dijelajahi dalam satu kawasan yang kompak.
+
+Bukit Panenjoan adalah spot ikonik untuk menikmati keseluruhan "amfiteater" Ciletuh — terutama saat pagi hari ketika kabut masih menyelimuti lembah dan cahaya matahari mulai menembus.`,
+    tips: [
+      'Waktu terbaik: April–Oktober (musim kemarau). Hindari musim hujan karena jalan licin.',
+      'Berangkat dari Sukabumi kota minimal pukul 04:00 untuk dapat sunrise di Bukit Panenjoan.',
+      'Sinyal sangat terbatas — download peta offline atau simpan nomor guide lokal sebelum berangkat.',
+      'Bawa uang tunai, tidak ada ATM di kawasan Ciletuh.',
+      'Sewa motor lokal Rp 100–150rb/hari untuk lebih fleksibel menjelajahi spot-spot.',
+      'Pakai sunscreen dan bawa air minum yang cukup — teriknya cukup ekstrem.',
+    ],
+    info: {
+      jam: 'Buka 24 jam (area terbuka)',
+      tiket: 'Rp 10.000–25.000 per spot',
+      jarak: '~100 km dari pusat kota Sukabumi',
+      waktu: '3–4 jam dari Sukabumi kota',
+      parkir: 'Tersedia di setiap spot',
+      guide: 'Guide lokal tersedia Rp 150–200rb/hari'
+    },
+    gallery: [
+      { emoji: '🌅', bg: 'bg-teal', label: 'Sunrise Bukit Panenjoan' },
+      { emoji: '💧', bg: 'bg-blue', label: 'Curug Cikanteh' },
+      { emoji: '🏖️', bg: 'bg-orange', label: 'Pantai Palangpang' },
+      { emoji: '🌊', bg: 'bg-teal', label: 'Curug Sodong' },
+      { emoji: '🌿', bg: 'bg-dark', label: 'Jalan menuju curug' },
+      { emoji: '⛵', bg: 'bg-blue', label: 'Desa nelayan Ciletuh' },
+    ],
+    nearby: [
+      { id: 'palabuhanratu', emoji: '🌊', label: 'Pantai Palabuhanratu', desc: '~30 km · 45 menit' },
+      { id: 'curug-cigangsa', emoji: '💧', label: 'Curug Cigangsa', desc: '~20 km · 35 menit' },
+    ],
+    reviews: [
+      { name: 'Siti F.', initial: 'SF', kota: 'Jakarta', date: '10 Apr 2026', text: 'Pemandangannya literally epic banget. Bukit Panenjoan pas sunrise bikin speechless. Worth the 4-hour drive dari Jakarta!' },
+      { name: 'Budi H.', initial: 'BH', kota: 'Bandung', date: '5 Apr 2026', text: 'Sudah 3x ke Ciletuh dan selalu nemu hal baru. Rekomendasikan buat cari guide lokal biar tau jalur-jalur tersembunyi.' },
+    ]
+  },
+  palabuhanratu: {
+    name: 'Pantai Palabuhanratu', emoji: '🌊', bgColor: 'bg-blue',
+    loc: 'Palabuhanratu, Kab. Sukabumi', category: 'Pantai / Wisata Alam', rating: 4.7, reviews: 3420,
+    tags: ['Pantai','Sunset','Seafood','Berselancar','Legendaris'],
+    desc: `Palabuhanratu adalah pantai paling ikonik di Sukabumi dan salah satu yang paling terkenal di Jawa Barat. Ombaknya yang besar dan konsisten menjadikannya spot favorit peselancar, sementara suasana pelabuhannya yang autentik menawarkan pengalaman berbeda dari pantai-pantai wisata lainnya.
+
+Yang paling memorable dari Palabuhanratu adalah kombinasi antara keindahan panorama laut, aktivitas nelayan yang masih sangat tradisional, dan tentu saja kuliner seafoodnya yang langsung dari tangkapan segar. Banyak warung di tepi pantai yang menyajikan ikan bakar, udang, dan cumi dengan harga sangat terjangkau.
+
+Sunset di Palabuhanratu termasuk yang paling dramatis di Jawa Barat — langit merah keemasan dengan siluet kapal nelayan di kejauhan.`,
+    tips: [
+      'Jangan berenang di area yang terlarang — ombak Palabuhanratu sangat kuat dan berbahaya.',
+      'Makan siang/malam di warung seafood tepi pantai, pilih yang ada tempat duduk menghadap laut.',
+      'Datang weekend pagi untuk nonton aktivitas nelayan pulang melaut.',
+      'Ada tradisi lokal yang perlu dihormati — tanyakan ke penduduk setempat tentang pantangan adat.',
+      'Penginapan banyak tersedia dengan range harga dari Rp 150rb–700rb/malam.',
+    ],
+    info: {
+      jam: 'Buka 24 jam', tiket: 'Gratis (beberapa spot Rp 10.000)',
+      jarak: '~60 km dari kota Sukabumi', waktu: '~1,5 jam dari Sukabumi',
+      parkir: 'Rp 5.000–10.000', guide: 'Tidak wajib'
+    },
+    gallery: [
+      { emoji: '🌅', bg: 'bg-orange', label: 'Sunset Palabuhanratu' },
+      { emoji: '🎣', bg: 'bg-blue', label: 'Nelayan tradisional' },
+      { emoji: '🦐', bg: 'bg-red', label: 'Seafood segar' },
+      { emoji: '🏄', bg: 'bg-teal', label: 'Spot surfing' },
+      { emoji: '⛵', bg: 'bg-dark', label: 'Pelabuhan ikan' },
+      { emoji: '🌊', bg: 'bg-blue', label: 'Pantai eksotis' },
+    ],
+    nearby: [
+      { id: 'ciletuh', emoji: '🏞️', label: 'Geopark Ciletuh', desc: '~30 km · 45 menit' },
+    ],
+    reviews: [
+      { name: 'Maya R.', initial: 'MR', kota: 'Bogor', date: '8 Apr 2026', text: 'Seafoodnya fresh banget dan murah! Ikan bakar dan udang goreng, total 4 orang cuma 150rb. Pemandangannya bonus.' },
+    ]
+  },
+  'hutan-pinus': {
+    name: 'Hutan Pinus Kertabumi', emoji: '🌿', bgColor: 'bg-orange',
+    loc: 'Kertabumi, Kec. Ciambar, Kab. Sukabumi', category: 'Alam / Wisata Foto', rating: 4.5, reviews: 876,
+    tags: ['Hutan Pinus','Foto','Camping','Healing','Instagramable'],
+    desc: `Hutan Pinus Kertabumi adalah surga tersembunyi bagi siapa saja yang butuh jeda dari kesibukan kota. Pepohonan pinus yang menjulang tinggi menciptakan suasana yang tenang, sejuk, dan sangat photogenic — terutama saat sinar matahari menembus celah-celah daun pinus dan menciptakan efek light ray yang dramatis.
+
+Tidak seperti hutan pinus di tempat lain yang sudah terlalu ramai dan penuh wahana, Kertabumi masih mempertahankan kesan alam yang relatif alami. Jalurnya cukup bersahabat untuk semua kalangan, dengan beberapa area yang ideal untuk piknik, camping, atau sekadar duduk menikmati ketenangan.
+
+Suhu di kawasan ini rata-rata 18–24°C sepanjang tahun — nyaman banget untuk orang yang biasa kepanasan di Jakarta atau Bandung.`,
+    tips: [
+      'Bawa jaket — udaranya bisa sangat dingin terutama pagi dan malam hari.',
+      'Golden hour terbaik: 06:30–08:00 pagi untuk sinar matahari yang memecah di antara pohon.',
+      'Weekday jauh lebih sepi dan cocok untuk foto-foto yang lebih intim.',
+      'Tersedia area camping — bawa sleeping bag dan peralatan sendiri.',
+      'Jangan tinggalkan sampah, akses ke sini masih cukup sensitif secara ekologi.',
+    ],
+    info: {
+      jam: '07:00–17:00 (weekday), 06:00–18:00 (weekend)',
+      tiket: 'Rp 10.000/orang', jarak: '~40 km dari kota Sukabumi',
+      waktu: '~1 jam dari Sukabumi', parkir: 'Tersedia gratis', guide: 'Tidak wajib'
+    },
+    gallery: [
+      { emoji: '🌲', bg: 'bg-dark', label: 'Lorong pinus' },
+      { emoji: '☀️', bg: 'bg-yellow', label: 'Light rays pagi hari' },
+      { emoji: '🏕️', bg: 'bg-orange', label: 'Area camping' },
+      { emoji: '🦋', bg: 'bg-teal', label: 'Flora lokal' },
+      { emoji: '🌿', bg: 'bg-orange', label: 'Jalur trekking' },
+      { emoji: '🌙', bg: 'bg-dark', label: 'Suasana malam' },
+    ],
+    nearby: [
+      { id: 'gunung-gede', emoji: '⛰️', label: 'Gunung Gede Pangrango', desc: '~25 km · 40 menit' },
+    ],
+    reviews: [
+      { name: 'Lena A.', initial: 'LA', kota: 'Jakarta', date: '12 Apr 2026', text: 'Vibes-nya kayak lagi di luar negeri tapi ini Sukabumi! Foto-fotonya aesthetic banget dan udaranya super segar.' },
+    ]
+  },
+  'curug-cigangsa': {
+    name: 'Curug Cigangsa', emoji: '💧', bgColor: 'bg-yellow',
+    loc: 'Kec. Sukaraja, Kab. Sukabumi', category: 'Alam / Air Terjun', rating: 4.6, reviews: 420,
+    tags: ['Air Terjun','Hidden Gem','Trekking','Alam Liar'],
+    desc: `Curug Cigangsa adalah salah satu air terjun paling tersembunyi dan paling indah di Sukabumi. Berbeda dari curug-curug yang sudah ramai dan komersial, Cigangsa masih sangat alami — aksesnya memerlukan trekking sekitar 45 menit melalui jalur hutan yang asri dan sesekali menantang.
+
+Airnya sangat jernih dengan debit yang cukup deras terutama di musim penghujan. Kolam alami di bawah air terjun cukup dalam untuk berenang dengan aman, dan suasananya yang sunyi membuat pengalaman di sini terasa sangat istimewa.
+
+Karena lokasinya yang cukup terpencil, Curug Cigangsa belum banyak diketahui wisatawan dari luar — ini adalah salah satu definisi nyata dari "hidden gem" Sukabumi.`,
+    tips: [
+      'Wajib pakai sepatu/sandal trekking — jalurnya berbatu dan bisa licin.',
+      'Datang dengan guide lokal dari desa terdekat, biaya sekitar Rp 75.000.',
+      'Bawa bekal dan air minum sendiri — tidak ada warung di jalur trekking.',
+      'Tidak disarankan untuk anak kecil atau lansia karena jalurnya cukup menantang.',
+      'Waktu terbaik: Mei–September saat debit air optimal tapi cuaca tidak terlalu ekstrem.',
+    ],
+    info: {
+      jam: '08:00–15:00', tiket: 'Rp 15.000/orang (kontribusi ke warga)',
+      jarak: '~30 km dari kota Sukabumi', waktu: '~1 jam + 45 menit trekking',
+      parkir: 'Di desa, Rp 10.000', guide: 'Disarankan (Rp 75.000)'
+    },
+    gallery: [
+      { emoji: '💧', bg: 'bg-teal', label: 'Air terjun utama' },
+      { emoji: '🌿', bg: 'bg-orange', label: 'Jalur trekking' },
+      { emoji: '🪨', bg: 'bg-dark', label: 'Kolam alami' },
+      { emoji: '🌳', bg: 'bg-teal', label: 'Hutan di jalur' },
+      { emoji: '🦎', bg: 'bg-yellow', label: 'Flora fauna lokal' },
+      { emoji: '🌊', bg: 'bg-blue', label: 'Aliran sungai' },
+    ],
+    nearby: [
+      { id: 'hutan-pinus', emoji: '🌿', label: 'Hutan Pinus Kertabumi', desc: '~15 km · 30 menit' },
+    ],
+    reviews: [
+      { name: 'Doni P.', initial: 'DP', kota: 'Depok', date: '6 Apr 2026', text: 'Ini serius hidden gem. Perjalanannya worth it banget. Curug-nya jernih dan sepi — nggak ada turis lain!' },
+    ]
+  },
+  'kota-lama': {
+    name: 'Kawasan Kota Lama Sukabumi', emoji: '🏛️', bgColor: 'bg-red',
+    loc: 'Pusat Kota Sukabumi', category: 'Heritage / City Walk', rating: 4.4, reviews: 560,
+    tags: ['Heritage','Kolonial','City Walk','Sejarah','Fotografi'],
+    desc: `Kawasan Kota Lama Sukabumi menyimpan lapisan sejarah yang kaya dari era kolonial Belanda. Bangunan-bangunan tua dengan arsitektur art deco dan colonial yang masih berdiri kokoh menjadi saksi bisu perjalanan kota Sukabumi sejak akhir abad ke-19.
+
+Menelusuri kawasan ini seperti berjalan di lorong waktu — ada bangunan bekas kantor pos zaman Belanda, gereja tua dengan eksterior yang megah, ruko-ruko bergaya pecinan dari awal abad 20, dan jalan-jalan kecil yang masih mempertahankan pola asli kota kolonial.
+
+Kawasan ini juga aktif secara sosial — di beberapa sudut ada pedagang kaki lima tradisional, warung kopi tua, dan aktivitas warga yang masih sangat organik dan belum tersentuh gentrifikasi berlebihan.`,
+    tips: [
+      'Datang pagi hari (06:00–09:00) untuk cahaya terbaik dan suasana yang lebih tenang.',
+      'Berjalan kaki adalah cara terbaik — sebagian besar spot berdekatan.',
+      'Mampir ke warung kopi tua di Jl. Ahmad Yani — kopi robusta lokalnya enak.',
+      'Tanyakan sejarah bangunan ke pemilik toko atau warga lanjut usia setempat.',
+      'Bawa kamera atau HP dengan kamera bagus — banyak angle foto yang menarik.',
+    ],
+    info: {
+      jam: 'Buka 24 jam (area publik)', tiket: 'Gratis',
+      jarak: 'Di pusat kota Sukabumi', waktu: 'Walking tour 2–3 jam',
+      parkir: 'Di sekitar alun-alun', guide: 'Guide sejarah tersedia (hubungi Dispar)'
+    },
+    gallery: [
+      { emoji: '🏛️', bg: 'bg-red', label: 'Gedung kolonial' },
+      { emoji: '🕌', bg: 'bg-blue', label: 'Masjid Agung' },
+      { emoji: '🚲', bg: 'bg-orange', label: 'Suasana jalan' },
+      { emoji: '🏪', bg: 'bg-yellow', label: 'Ruko pecinan' },
+      { emoji: '☕', bg: 'bg-dark', label: 'Warung kopi tua' },
+      { emoji: '📸', bg: 'bg-teal', label: 'Spot foto heritage' },
+    ],
+    nearby: [
+      { id: 'palabuhanratu', emoji: '🌊', label: 'Pantai Palabuhanratu', desc: '~60 km · 1,5 jam' },
+    ],
+    reviews: [
+      { name: 'Ari W.', initial: 'AW', kota: 'Jakarta', date: '3 Apr 2026', text: 'Unexpected banget Sukabumi punya kawasan heritage yang cukup terjaga. Foto-foto di sini aesthetic dan autentik.' },
+    ]
+  },
+  'gunung-gede': {
+    name: 'Gunung Gede Pangrango', emoji: '⛰️', bgColor: 'bg-teal',
+    loc: 'Cipanas, Kab. Sukabumi / Kab. Cianjur', category: 'Alam / Pendakian', rating: 4.8, reviews: 5600,
+    tags: ['Pendakian','Camping','Alam Liar','Flora','Volcano'],
+    desc: `Gunung Gede Pangrango adalah taman nasional dengan dua puncak gunung berapi aktif — Gunung Gede (2.958 m) dan Gunung Pangrango (3.019 m). Ini adalah salah satu destinasi pendakian paling legendaris di Indonesia dan favorit para pendaki dari seluruh Jawa.
+
+Jalur pendakian yang paling populer dimulai dari Cibodas (sisi Cianjur/Sukabumi). Trek melewati hutan hujan tropis yang lebat, air terjun Cibeureum yang indah, pos-pos peristirahatan yang nyaman, hingga akhirnya tiba di kawah dan puncak dengan pemandangan 360 derajat yang breathtaking.
+
+Yang menjadi daya tarik unik Gede Pangrango adalah keragaman hayatinya — hutan montana yang kaya flora endemik, populasi elang jawa yang dilindungi, dan suasana alam yang benar-benar liar dan tak terganggu.`,
+    tips: [
+      'Wajib booking tiket pendakian online di website TNGGP — kuota terbatas dan sering habis.',
+      'Bawa sleeping bag rated minimal 0°C — suhu puncak bisa di bawah 5°C.',
+      'Pendakian 2 hari 1 malam adalah waktu ideal — camp di pos Kandang Badak.',
+      'Cek kondisi cuaca sebelum berangkat. Pendakian ditutup saat musim penghujan ekstrem.',
+      'Daftarkan diri dan tinggalkan kontak di pos pendakian sebagai protokol keamanan.',
+      'Trek Cibodas–Puncak Gede: ±8 km dengan elevasi ~1.500 meter dari basecamp.',
+    ],
+    info: {
+      jam: 'Pendakian mulai 05:00', tiket: 'Rp 29.500 (weekday) / Rp 34.000 (weekend)',
+      jarak: '~30 km dari kota Sukabumi', waktu: 'Trek 6–8 jam ke puncak',
+      parkir: 'Di area Cibodas, Rp 20.000/mobil', guide: 'Tersedia Rp 200–350rb/trip'
+    },
+    gallery: [
+      { emoji: '⛰️', bg: 'bg-teal', label: 'Puncak Gunung Gede' },
+      { emoji: '🌋', bg: 'bg-orange', label: 'Kawah aktif' },
+      { emoji: '💧', bg: 'bg-blue', label: 'Air terjun Cibeureum' },
+      { emoji: '🌿', bg: 'bg-teal', label: 'Hutan montana' },
+      { emoji: '🦅', bg: 'bg-dark', label: 'Elang Jawa' },
+      { emoji: '🏕️', bg: 'bg-orange', label: 'Camp Kandang Badak' },
+    ],
+    nearby: [
+      { id: 'hutan-pinus', emoji: '🌿', label: 'Hutan Pinus Kertabumi', desc: '~25 km · 40 menit' },
+    ],
+    reviews: [
+      { name: 'Kevin S.', initial: 'KS', kota: 'Bandung', date: '14 Apr 2026', text: 'Sudah 5x naik Gede dan tidak pernah bosen. Puncaknya selalu memberikan perspektif baru. Hutan montananya luar biasa.' },
+      { name: 'Nana D.', initial: 'ND', kota: 'Jakarta', date: '2 Apr 2026', text: 'Pertama kali naik gunung dan pilih Gede. Guide-nya helpful banget. Capek tapi happy — rekomen banget!' },
+    ]
+  }
+};
+
+const defaultDest = {
+  name: 'Destinasi Sukabumi', emoji: '🗺️', bgColor: 'bg-teal',
+  loc: 'Sukabumi, Jawa Barat', category: 'Wisata', rating: 4.5, reviews: 100,
+  tags: ['Alam','Sukabumi'], desc: 'Destinasi indah di Sukabumi yang menakjubkan.',
+  tips: ['Bawa kamera', 'Datang pagi hari'], info: { jam: 'Sesuai jadwal', tiket: 'Hubungi pengelola', jarak: '-', waktu: '-', parkir: 'Tersedia', guide: 'Tersedia' },
+  gallery: [], nearby: [], reviews: []
+};
+
+function renderDest() {
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id') || 'ciletuh';
+  const d = destinations[id] || defaultDest;
+
+  document.title = `${d.name} — Sukabumi Discovery`;
+
+  const starsHtml = '⭐'.repeat(Math.round(d.rating));
+  const tagsHtml = (d.tags||[]).map(t => `<span class="tag">${t}</span>`).join('');
+
+  const galleryHtml = (d.gallery||[]).map(g => `
+    <div class="gallery-item"><div class="gi ${g.bg}">${g.emoji}</div></div>
+  `).join('');
+
+  const nearbyHtml = (d.nearby||[]).map(n => `
+    <a href="/SukabumiDiscovery/destination?id=${n.id}" class="nearby-item">
+      <div class="ni-icon">${n.emoji}</div>
+      <div class="ni-info"><h5>${n.label}</h5><span>${n.desc}</span></div>
+    </a>
+  `).join('');
+
+  const reviewsHtml = (d.reviews||[]).map(r => `
+    <div class="review-card">
+      <div class="review-header">
+        <div class="review-av">${r.initial}</div>
+        <div><div class="review-name">${r.name} · ${r.kota}</div><div class="review-date">${r.date}</div></div>
+        <div class="stars" style="margin-left:auto">⭐⭐⭐⭐⭐</div>
+      </div>
+      <div class="review-body">${r.text}</div>
+    </div>
+  `).join('');
+
+  const infoRowsHtml = Object.entries({
+    '🕐': ['Jam Buka', d.info.jam],
+    '🎫': ['Tiket Masuk', d.info.tiket],
+    '📍': ['Jarak', d.info.jarak],
+    '🚗': ['Waktu Tempuh', d.info.waktu],
+    '🅿️': ['Parkir', d.info.parkir],
+    '👤': ['Guide', d.info.guide],
+  }).map(([icon, [label, val]]) => `
+    <div class="info-row">
+      <div class="ir-icon">${icon}</div>
+      <div><div class="ir-label">${label}</div><div class="ir-val">${val}</div></div>
+    </div>
+  `).join('');
+
+  const tipsHtml = (d.tips||[]).map(t => `<li>${t}</li>`).join('');
+
+  document.getElementById('destContent').innerHTML = `
+    <div class="dest-hero ${d.bgColor}" style="color:${d.bgColor==='bg-yellow'||d.bgColor==='bg-teal'?'var(--dark)':'var(--white)'}">
+      <div class="dest-hero-bg">${d.emoji}</div>
+      <div class="dest-hero-inner">
+        <div class="breadcrumb">
+          <a href="/SukabumiDiscovery" style="color:inherit">Home</a>
+          <span>›</span>
+          <a href="/SukabumiDiscovery/things-to-do" style="color:inherit">Things To Do</a>
+          <span>›</span>
+          <span>${d.name}</span>
+        </div>
+        <div class="dest-hero-meta">
+          ${tagsHtml}
+        </div>
+        <h1>${d.name}</h1>
+        <div class="dest-hero-meta" style="margin-top:12px">
+          <span>📍 ${d.loc}</span>
+          <span>${starsHtml} ${d.rating} (${typeof d.reviews === 'number' ? d.reviews : (d.reviews||[]).length}+ ulasan)</span>
+          <span>${d.category}</span>
+        </div>
+        <div class="dest-hero-actions">
+          <a href="/SukabumiDiscovery/map" class="btn btn-white">🗺 Lihat di Peta</a>
+          <button class="btn" style="background:rgba(0,0,0,0.2);color:inherit;border-color:rgba(255,255,255,0.4)" onclick="shareDestination()">📤 Bagikan</button>
+          <button class="btn" style="background:rgba(0,0,0,0.2);color:inherit;border-color:rgba(255,255,255,0.4)" onclick="saveDest('${id}')">🔖 Simpan</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="color-band"></div>
+
+    <div class="dest-body section-inner" style="padding: 60px 40px; max-width: var(--max-w); margin: 0 auto; display: grid; grid-template-columns: 1fr 360px; gap: 60px;">
+      <div class="dest-main">
+        <div class="dest-section-title">Tentang ${d.name}</div>
+        <div class="dest-desc">${d.desc.split('\n').filter(l=>l.trim()).map(l=>`<p style="margin-bottom:16px">${l.trim()}</p>`).join('')}</div>
+
+        <div class="dest-section-title">Galeri</div>
+        <div class="gallery" style="margin-bottom:40px">${galleryHtml || '<p style="color:#888;font-size:14px">Foto segera hadir.</p>'}</div>
+
+        <div class="dest-section-title">Tips & Persiapan</div>
+        <ul class="tips-list">${tipsHtml}</ul>
+
+        <div class="dest-section-title">Ulasan Pengunjung</div>
+        ${reviewsHtml}
+        <div class="add-review" onclick="requireLogin() && openModal('reviewModal')">+ Tulis Ulasan</div>
+      </div>
+
+      <div class="dest-sidebar">
+        <div class="info-box">
+          <h4>ℹ️ Info Kunjungan</h4>
+          ${infoRowsHtml}
+        </div>
+
+        <div class="map-box">
+          <div class="map-placeholder">
+            <div>🗺️</div>
+            <span>Lokasi: ${d.loc}</span>
+            <a href="/SukabumiDiscovery/map" onclick="sessionStorage.setItem('mapFocus','${id}')">Buka Peta Interaktif →</a>
+          </div>
+        </div>
+
+        ${nearbyHtml ? `<div class="info-box"><h4>📍 Destinasi Terdekat</h4><div class="nearby-list">${nearbyHtml}</div></div>` : ''}
+
+        <a href="/SukabumiDiscovery/things-to-do" class="btn btn-outline" style="width:100%;justify-content:center">← Kembali ke Things To Do</a>
+      </div>
+    </div>
+  `;
+
+  // Fix responsive for mobile
+  if (window.innerWidth <= 900) {
+    const body = document.querySelector('.dest-body, [style*="grid-template-columns"]');
+    if (body) body.style.gridTemplateColumns = '1fr';
+  }
+}
+
+function shareDestination() {
+  if (navigator.share) {
+    navigator.share({ title: document.title, url: window.location.href });
+  } else {
+    navigator.clipboard.writeText(window.location.href);
+    showToast('Link disalin! 📋');
+  }
+}
+
+function saveDest(id) {
+  if (!requireLogin()) return;
+  const saved = JSON.parse(localStorage.getItem('sd_saved') || '[]');
+  if (!saved.includes(id)) { saved.push(id); localStorage.setItem('sd_saved', JSON.stringify(saved)); showToast('Destinasi disimpan! 🔖', 'success'); }
+  else { showToast('Sudah tersimpan sebelumnya.'); }
+}
+
+/* ── Firebase-first loader ── */
+document.addEventListener('DOMContentLoaded', async () => {
+  const params = new URLSearchParams(window.location.search);
+  const idParam = params.get('id') || 'ciletuh';
+
+  // Try loading from Firebase by numeric id or slug key
+  try {
+    const allDests = await DB.getList('destinations');
+    // match by id (numeric), name slug, or _key
+    const firebaseDest = allDests.find(d =>
+      String(d.id) === idParam ||
+      d._key === idParam ||
+      (d.name || '').toLowerCase().replace(/\s+/g,'-') === idParam
+    );
+
+    if (firebaseDest) {
+      // Build a compatible object from Firebase data
+      const bg = firebaseDest.color || 'bg-teal';
+      const isDark = bg === 'bg-blue' || bg === 'bg-red' || bg === 'bg-dark';
+      const tipsArr = (firebaseDest.tips || '').split('\n').filter(Boolean);
+      const info = {
+        jam: firebaseDest.jam || 'Sesuai jadwal',
+        tiket: firebaseDest.tiket || 'Hubungi pengelola',
+        jarak: '-', waktu: '-', parkir: 'Tersedia', guide: 'Tersedia'
+      };
+      const tags = (firebaseDest.cat || 'Wisata').split('/').map(t => t.trim());
+      const reviewCount = firebaseDest.reviewCount || firebaseDest.rating ? Math.round((firebaseDest.rating || 4.5) * 100) : 100;
+
+      renderWithData({
+        id: idParam,
+        name: firebaseDest.name,
+        emoji: firebaseDest.emoji || '🏔️',
+        bgColor: bg,
+        imageUrl: firebaseDest.imageUrl || '',
+        loc: firebaseDest.loc || 'Sukabumi',
+        category: firebaseDest.cat || 'Wisata',
+        rating: firebaseDest.rating || 4.5,
+        reviews: reviewCount,
+        tags,
+        desc: firebaseDest.descFull || firebaseDest.descShort || '',
+        tips: tipsArr,
+        info,
+        gallery: [],
+        nearby: [],
+        reviewsList: []
+      });
+      return;
+    }
+  } catch(e) {
+    console.warn('Firebase load failed, using local data:', e);
+  }
+
+  // Fallback to local hardcoded data
+  renderDest();
+});
+
+function renderWithData(d) {
+  const BG_COLORS = { 'bg-blue':'#2D32F0','bg-orange':'#F05A10','bg-red':'#C83060','bg-teal':'#5DD4C4','bg-yellow':'#F0C820','bg-peach':'#F5C8B0','bg-dark':'#181818' };
+  const bgHex = BG_COLORS[d.bgColor] || '#5DD4C4';
+  const isDark = ['bg-blue','bg-red','bg-dark'].includes(d.bgColor);
+  const textColor = isDark ? 'var(--white)' : 'var(--dark)';
+  const tagsHtml = (d.tags||[]).map(t => `<span class="tag" style="border-color:rgba(${isDark?'255,255,255':'0,0,0'},0.3);color:inherit">${t}</span>`).join('');
+  const tipsHtml = (d.tips||[]).map(t => `<li>${t}</li>`).join('');
+
+  const heroImgHtml = d.imageUrl
+    ? `<div class="dest-hero-bg" style="opacity:1;"><img src="${d.imageUrl}" alt="${d.name}" style="width:100%;height:100%;object-fit:cover;opacity:0.25"></div>`
+    : `<div class="dest-hero-bg">${d.emoji}</div>`;
+
+  const infoRowsHtml = Object.entries({
+    '🕐': ['Jam Buka', d.info.jam],
+    '🎫': ['Tiket Masuk', d.info.tiket],
+    '📍': ['Lokasi', d.loc],
+    '🚗': ['Waktu Tempuh', d.info.waktu],
+    '🅿️': ['Parkir', d.info.parkir],
+    '👤': ['Guide', d.info.guide],
+  }).map(([icon, [label, v]]) => `
+    <div class="info-row">
+      <div class="ir-icon">${icon}</div>
+      <div><div class="ir-label">${label}</div><div class="ir-val">${v}</div></div>
+    </div>`).join('');
+
+  document.getElementById('destContent').innerHTML = `
+    <div class="dest-hero" style="background:${bgHex};color:${textColor}">
+      ${heroImgHtml}
+      <div class="dest-hero-inner">
+        <div class="breadcrumb"><a href="/SukabumiDiscovery" style="color:inherit;opacity:.7">Home</a><span>›</span><a href="/SukabumiDiscovery/things-to-do" style="color:inherit;opacity:.7">Things To Do</a><span>›</span><span>${d.name}</span></div>
+        <div class="dest-hero-meta">${tagsHtml}</div>
+        <h1>${d.name}</h1>
+        <div class="dest-hero-meta" style="margin-top:12px">
+          <span>📍 ${d.loc}</span>
+          <span>⭐ ${d.rating} · ${d.category}</span>
+        </div>
+        <div class="dest-hero-actions">
+          <a href="/SukabumiDiscovery/map" class="btn btn-white">🗺 Lihat di Peta</a>
+          <button class="btn" style="background:rgba(0,0,0,0.2);color:inherit;border-color:rgba(255,255,255,0.3)" onclick="shareDestination()">📤 Bagikan</button>
+          <button class="btn" style="background:rgba(0,0,0,0.2);color:inherit;border-color:rgba(255,255,255,0.3)" onclick="saveDest('${d.id}')">🔖 Simpan</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="color-band"></div>
+
+    <div style="max-width:var(--max-w);margin:0 auto;padding:60px 40px;display:grid;grid-template-columns:1fr 360px;gap:60px" class="dest-layout">
+      <div>
+        <div class="dest-section-title">Tentang ${d.name}</div>
+        <div class="dest-desc">${(d.desc||'').split('\n').filter(l=>l.trim()).map(l=>`<p style="margin-bottom:16px">${l.trim()}</p>`).join('') || '<p style="color:#888">Deskripsi belum tersedia.</p>'}</div>
+
+        ${d.imageUrl ? `
+        <div class="dest-section-title">Foto</div>
+        <div style="border-radius:18px;overflow:hidden;border:2px solid var(--dark);margin-bottom:40px">
+          <img src="${d.imageUrl}" alt="${d.name}" style="width:100%;max-height:400px;object-fit:cover;display:block">
+        </div>` : ''}
+
+        <div class="dest-section-title">Tips & Persiapan</div>
+        <ul class="tips-list">${tipsHtml || '<li>Hubungi pengelola untuk informasi lebih lanjut.</li>'}</ul>
+
+        <div class="add-review" onclick="requireLogin() && showToast('Fitur ulasan segera hadir! ✍️','success')">+ Tulis Ulasan</div>
+      </div>
+
+      <div>
+        <div class="info-box">${infoRowsHtml}</div>
+        <div class="map-box"><div class="map-placeholder"><div>🗺️</div><span>Lokasi: ${d.loc}</span><a href="/SukabumiDiscovery/map">Buka Peta Interaktif →</a></div></div>
+        <a href="/SukabumiDiscovery/things-to-do" class="btn btn-outline" style="width:100%;justify-content:center;margin-top:14px">← Kembali ke Things To Do</a>
+      </div>
+    </div>
+  `;
+
+  document.title = `${d.name} — Sukabumi Discovery`;
+
+  // Responsive
+  if (window.innerWidth <= 900) {
+    const body = document.querySelector('.dest-layout');
+    if (body) body.style.gridTemplateColumns = '1fr';
+  }
+  window.addEventListener('resize', () => {
+    const body = document.querySelector('.dest-layout');
+    if (body) body.style.gridTemplateColumns = window.innerWidth <= 900 ? '1fr' : '1fr 360px';
+  });
+  initScrollReveal();
+}
+</script>
+</body>
+</html>

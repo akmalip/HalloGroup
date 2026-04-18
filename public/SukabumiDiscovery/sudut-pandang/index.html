@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="id" style="background:#F2EFE8;color:#181818;cursor:auto;overflow:auto;height:auto">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sudut Pandang Sukabumi — Sukabumi Discovery</title>
+<link rel="stylesheet" href="/SukabumiDiscovery/shared.css">
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="firebase-config.js"></script>
+<style>
+.sp-header { background: var(--dark); color: var(--white); padding: 110px 40px 50px; position: relative; overflow: hidden; }
+.sp-header::before { content: '✍️'; position: absolute; right: 5%; top: 50%; transform: translateY(-50%); font-size: 180px; opacity: 0.1; pointer-events: none; }
+.sp-header h1 { font-family: var(--font-display); font-size: clamp(38px,7vw,80px); font-weight: 800; line-height: 1; letter-spacing: -0.03em; position: relative; }
+.sp-header p { font-size: 16px; color: rgba(255,255,255,0.7); margin-top: 14px; max-width: 500px; line-height: 1.7; position: relative; }
+.sp-header-cta { margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap; position: relative; }
+
+.sp-body { max-width: var(--max-w); margin: 0 auto; padding: 50px 40px; }
+.sp-layout { display: grid; grid-template-columns: 1fr 300px; gap: 50px; }
+.sp-main { }
+.sp-sidebar { }
+
+/* Filters */
+.sp-filters { display: flex; align-items: center; gap: 14px; margin-bottom: 32px; flex-wrap: wrap; }
+.sp-sort { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: #888; padding: 8px 16px; border: 2px solid var(--dark); border-radius: 100px; background: none; cursor: pointer; transition: all 0.2s; }
+.sp-sort.active, .sp-sort:hover { background: var(--dark); color: var(--white); }
+
+/* Post list */
+.post-list { display: flex; flex-direction: column; gap: 20px; }
+
+.post-card {
+  border: 2px solid var(--dark); border-radius: 20px; overflow: hidden;
+  background: var(--white); text-decoration: none; color: var(--dark);
+  display: grid; grid-template-columns: 180px 1fr;
+  transition: transform 0.25s, box-shadow 0.25s; cursor: pointer;
+}
+.post-card:hover { transform: translateY(-4px); box-shadow: 4px 4px 0 var(--dark); }
+.post-card.featured { grid-template-columns: 1fr; }
+
+.post-img { display: flex; align-items: center; justify-content: center; font-size: 52px; border-right: 2px solid var(--dark); }
+.post-card.featured .post-img { height: 240px; border-right: none; border-bottom: 2px solid var(--dark); font-size: 72px; }
+.post-content { padding: 20px 24px; display: flex; flex-direction: column; }
+.post-cat-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.post-cat { font-family: var(--font-display); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--orange); }
+.post-content h3 { font-family: var(--font-display); font-size: 18px; font-weight: 700; line-height: 1.3; margin-bottom: 8px; }
+.post-card.featured .post-content h3 { font-size: 24px; }
+.post-content p { font-size: 13px; color: #666; line-height: 1.6; flex: 1; }
+.post-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; flex-wrap: wrap; gap: 8px; }
+.post-author { display: flex; align-items: center; gap: 8px; }
+.post-av { width: 28px; height: 28px; border-radius: 50%; background: var(--blue); color: white; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 11px; font-weight: 700; border: 1.5px solid var(--dark); }
+.post-author-name { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: #555; }
+.post-stats { display: flex; gap: 12px; }
+.post-stat { font-size: 12px; color: #999; font-family: var(--font-display); font-weight: 600; cursor: pointer; transition: color 0.2s; }
+.post-stat:hover { color: var(--red); }
+.post-stat.liked { color: var(--red); }
+
+/* Sidebar */
+.sidebar-box { border: 2px solid var(--dark); border-radius: 18px; padding: 20px; margin-bottom: 20px; }
+.sidebar-box h4 { font-family: var(--font-display); font-size: 14px; font-weight: 700; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 2px solid var(--dark); }
+.top-author { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+.ta-av { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 13px; font-weight: 700; border: 2px solid var(--dark); }
+.ta-info strong { display: block; font-size: 13px; font-family: var(--font-display); font-weight: 700; }
+.ta-info span { font-size: 11px; color: #888; }
+.cat-stat { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 13px; }
+.cat-stat:last-child { border: none; }
+.cat-stat .cs-name { font-weight: 600; }
+.cat-stat .cs-count { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: var(--orange); }
+
+/* Write modal */
+.write-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; padding: 20px; }
+.write-overlay.open { display: flex; }
+.write-box { background: var(--white); border: 3px solid var(--dark); border-radius: 24px; padding: 36px; width: 100%; max-width: 620px; max-height: 90vh; overflow-y: auto; position: relative; }
+.write-box h3 { font-family: var(--font-display); font-size: 24px; font-weight: 800; margin-bottom: 6px; }
+.write-box p { font-size: 14px; color: #666; margin-bottom: 24px; }
+.write-close { position: absolute; top: 16px; right: 16px; width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--dark); background: none; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; cursor: pointer; }
+.write-close:hover { background: var(--dark); color: var(--white); }
+.cat-picker { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.cat-pick { font-family: var(--font-display); font-size: 12px; font-weight: 700; padding: 7px 16px; border-radius: 100px; border: 2px solid var(--dark); background: none; cursor: pointer; transition: all 0.2s; }
+.cat-pick.active { background: var(--orange); border-color: var(--orange); color: var(--white); }
+.write-body-input { width: 100%; padding: 14px 16px; border: 2px solid var(--dark); border-radius: 14px; font-family: var(--font-body); font-size: 14px; outline: none; resize: none; height: 160px; background: var(--cream); line-height: 1.7; }
+.write-body-input:focus { border-color: var(--blue); background: var(--white); }
+.emoji-picker { display: flex; gap: 10px; margin: 16px 0; flex-wrap: wrap; }
+.ep-btn { font-size: 24px; padding: 8px; border-radius: 12px; border: 2px solid transparent; cursor: pointer; background: none; transition: all 0.2s; }
+.ep-btn.active, .ep-btn:hover { background: var(--cream); border-color: var(--dark); }
+
+/* Post detail view */
+.post-detail-overlay { position: fixed; inset: 0; z-index: 950; background: var(--white); overflow-y: auto; display: none; }
+.post-detail-overlay.open { display: block; }
+.pd-inner { max-width: 720px; margin: 0 auto; padding: 80px 40px 60px; }
+.pd-back { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 13px; font-weight: 700; cursor: pointer; margin-bottom: 24px; transition: color 0.2s; text-decoration: none; color: var(--dark); }
+.pd-back:hover { color: var(--blue); }
+.pd-hero-img { height: 300px; border-radius: 20px; border: 2px solid var(--dark); display: flex; align-items: center; justify-content: center; font-size: 96px; margin-bottom: 32px; }
+.pd-title { font-family: var(--font-display); font-size: clamp(28px, 4vw, 44px); font-weight: 800; line-height: 1.15; letter-spacing: -0.02em; margin-bottom: 16px; }
+.pd-meta { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 28px; padding-bottom: 20px; border-bottom: 2px solid var(--dark); }
+.pd-author { display: flex; align-items: center; gap: 10px; }
+.pd-av { width: 36px; height: 36px; border-radius: 50%; background: var(--blue); color: white; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 13px; font-weight: 700; border: 2px solid var(--dark); }
+.pd-author-info strong { display: block; font-family: var(--font-display); font-size: 14px; font-weight: 700; }
+.pd-author-info span { font-size: 12px; color: #888; }
+.pd-body { font-size: 16px; line-height: 1.85; color: #333; }
+.pd-body p { margin-bottom: 20px; }
+.pd-actions { display: flex; gap: 12px; margin-top: 32px; padding-top: 24px; border-top: 2px solid var(--dark); flex-wrap: wrap; }
+
+@media (max-width: 900px) {
+  .sp-body { padding: 40px 20px; }
+  .sp-layout { grid-template-columns: 1fr; }
+  .sp-sidebar { order: -1; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .post-card { grid-template-columns: 140px 1fr; }
+  .pd-inner { padding: 70px 20px 50px; }
+}
+@media (max-width: 580px) {
+  .sp-header { padding: 90px 20px 40px; }
+  .post-card { grid-template-columns: 1fr; }
+  .post-img { height: 140px; border-right: none; border-bottom: 2px solid var(--dark); }
+  .sp-sidebar { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body style="background:#F2EFE8;color:#181818;overflow-x:hidden;cursor:auto" style="background:#F2EFE8;color:#181818;overflow-x:hidden;cursor:auto">
+<script src="shared.js"></script>
+<script>renderNav('blog');</script>
+
+<div class="sp-header">
+  <div class="breadcrumb" style="color:rgba(255,255,255,0.5)">
+    <a href="/SukabumiDiscovery" style="color:rgba(255,255,255,0.5)">Home</a><span>›</span><span>Sudut Pandang</span>
+  </div>
+  <h1>Sudut Pandang<br>Sukabumi.</h1>
+  <p>Bukan promosi, bukan iklan. Cerita nyata dari orang-orang yang beneran jatuh cinta sama Sukabumi — wisatawan, warga lokal, dan siapa saja yang punya sesuatu untuk diceritakan.</p>
+  <div class="sp-header-cta">
+    <button class="btn btn-secondary" onclick="openWrite()">✍️ Tulis Ceritamu</button>
+    <a href="#posts" class="btn btn-white">Baca Cerita →</a>
+  </div>
+</div>
+
+<div class="color-band"></div>
+
+<div class="sp-body">
+  <div class="sp-layout">
+    <div class="sp-main" id="posts">
+      <div class="sp-filters">
+        <div class="filter-chips" style="margin:0;flex:1">
+          <button class="chip active c-blue" onclick="filterPosts(this,'all')">Semua</button>
+          <button class="chip" onclick="filterPosts(this,'Visual Story')">Visual Story</button>
+          <button class="chip" onclick="filterPosts(this,'Kuliner')">Kuliner</button>
+          <button class="chip" onclick="filterPosts(this,'Alam')">Alam</button>
+          <button class="chip" onclick="filterPosts(this,'Trip Report')">Trip Report</button>
+          <button class="chip" onclick="filterPosts(this,'Fotografi')">Fotografi</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0">
+          <button class="sp-sort active" onclick="sortPosts(this,'latest')">Terbaru</button>
+          <button class="sp-sort" onclick="sortPosts(this,'popular')">Terpopuler</button>
+        </div>
+      </div>
+
+      <div class="post-list" id="postList">
+        <!-- rendered by JS -->
+      </div>
+
+      <div style="text-align:center;margin-top:30px">
+        <button class="btn btn-outline btn-lg" id="loadMoreBtn" onclick="loadMore()">Muat Lebih Banyak</button>
+      </div>
+    </div>
+
+    <div class="sp-sidebar">
+      <div class="sidebar-box">
+        <h4>✨ Penulis Aktif</h4>
+        <div id="topAuthors"></div>
+      </div>
+      <div class="sidebar-box">
+        <h4>📂 Kategori</h4>
+        <div id="catStats"></div>
+      </div>
+      <div class="sidebar-box" style="background:var(--yellow);border-color:var(--dark)">
+        <h4>✍️ Bagikan Ceritamu</h4>
+        <p style="font-size:13px;color:#444;line-height:1.6;margin-bottom:16px">Punya pengalaman seru di Sukabumi? Tulis dan bagikan ke ribuan pembaca.</p>
+        <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="openWrite()">Tulis Sekarang →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WRITE MODAL -->
+<div class="write-overlay" id="writeOverlay">
+  <div class="write-box">
+    <button class="write-close" onclick="closeWrite()">✕</button>
+    <h3>Ceritakan Sudut Pandangmu</h3>
+    <p>Bagikan pengalaman, tempat tersembunyi, atau momen di Sukabumi yang bikin kamu jatuh cinta.</p>
+
+    <div class="form-group">
+      <label>Judul Tulisan</label>
+      <input type="text" id="writeTitle" placeholder="Contoh: Pagi yang Ajaib di Ciletuh...">
+    </div>
+
+    <div class="form-group">
+      <label>Kategori</label>
+      <div class="cat-picker" id="catPicker">
+        <button class="cat-pick active" onclick="selectCat(this)">Alam</button>
+        <button class="cat-pick" onclick="selectCat(this)">Kuliner</button>
+        <button class="cat-pick" onclick="selectCat(this)">Trip Report</button>
+        <button class="cat-pick" onclick="selectCat(this)">Visual Story</button>
+        <button class="cat-pick" onclick="selectCat(this)">Fotografi</button>
+        <button class="cat-pick" onclick="selectCat(this)">Budaya</button>
+        <button class="cat-pick" onclick="selectCat(this)">City Walk</button>
+        <button class="cat-pick" onclick="selectCat(this)">Lainnya</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Pilih Emoji Cover</label>
+      <div class="emoji-picker" id="emojiPicker">
+        <button class="ep-btn active" onclick="selectEmoji(this)">🌅</button>
+        <button class="ep-btn" onclick="selectEmoji(this)">🍜</button>
+        <button class="ep-btn" onclick="selectEmoji(this)">🏞️</button>
+        <button class="ep-btn" onclick="selectEmoji(this)">📸</button>
+        <button class="ep-btn" onclick="selectEmoji(this)">☕</button>
+        <button class="ep-btn" onclick="selectEmoji(this)">⛰️</button>
+        <button class="ep-btn" onclick="selectEmoji(this)">🌊</button>
+        <button class="ep-btn" onclick="selectEmoji(this)">🌿</button>
+        <button class="ep-btn" onclick="selectEmoji(this)">🏛️</button>
+        <button class="ep-btn" onclick="selectEmoji(this)">✨</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Ceritamu</label>
+      <textarea class="write-body-input" id="writeBody" placeholder="Mulai cerita dari sini... Apa yang membuat momen itu berkesan? Bagaimana rasanya ada di sana? Detail kecil yang bikin cerita jadi hidup."></textarea>
+    </div>
+
+    <div class="form-error" id="writeError"></div>
+    <button class="form-submit" onclick="submitPost()">Publikasikan Cerita →</button>
+  </div>
+</div>
+
+<!-- POST DETAIL OVERLAY -->
+<div class="post-detail-overlay" id="postDetailOverlay">
+  <div class="pd-inner" id="postDetailContent"></div>
+</div>
+
+<script>
+let currentFilter = 'all';
+let currentSort = 'latest';
+let displayCount = 4;
+let selectedCat = 'Alam';
+let selectedEmoji = '🌅';
+
+function renderPosts() {
+  let posts = Posts.getAll();
+  if (currentFilter !== 'all') posts = posts.filter(p => p.category === currentFilter);
+  if (currentSort === 'popular') posts = [...posts].sort((a,b) => (b.views||0)-(a.views||0));
+
+  const container = document.getElementById('postList');
+  const user = Auth.currentUser();
+  const shown = posts.slice(0, displayCount);
+
+  if (shown.length === 0) {
+    container.innerHTML = `<div style="text-align:center;padding:60px 20px;color:#888">
+      <div style="font-size:48px;margin-bottom:12px">✍️</div>
+      <p style="font-family:var(--font-display);font-weight:700">Belum ada cerita di kategori ini.<br>Jadilah yang pertama!</p>
+      <button class="btn btn-primary" style="margin-top:16px" onclick="openWrite()">Tulis Sekarang</button>
+    </div>`;
+    return;
+  }
+
+  const bgColors = ['bg-orange','bg-teal','bg-blue','bg-red','bg-yellow','bg-peach'];
+  container.innerHTML = shown.map((p, i) => {
+    const liked = user && (p.likes||[]).includes(user.id);
+    const isFirst = i === 0 && currentFilter === 'all' && currentSort === 'latest';
+    return `
+      <div class="post-card ${isFirst?'featured':''} reveal" onclick="openPost(${p.id})">
+        <div class="post-img ${bgColors[i % bgColors.length]}">${p.emoji}</div>
+        <div class="post-content">
+          <div class="post-cat-row">
+            <span class="post-cat">${p.category}</span>
+            <span class="tag" style="font-size:10px">${p.date}</span>
+          </div>
+          <h3>${p.title}</h3>
+          <p>${p.body.slice(0,120)}...</p>
+          <div class="post-footer">
+            <div class="post-author">
+              <div class="post-av" style="background:var(--blue)">${p.authorInitial}</div>
+              <div class="post-author-name">${p.author} · ${p.authorKota}</div>
+            </div>
+            <div class="post-stats">
+              <span class="post-stat ${liked?'liked':''}" onclick="event.stopPropagation(); likePost(${p.id}, this)">
+                ${liked?'❤️':'🤍'} ${(p.likes||[]).length}
+              </span>
+              <span class="post-stat">👁 ${p.views||0}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('loadMoreBtn').style.display = posts.length > displayCount ? 'inline-flex' : 'none';
+  initScrollReveal();
+}
+
+function renderSidebar() {
+  const posts = Posts.getAll();
+  // Top authors
+  const authorMap = {};
+  posts.forEach(p => {
+    if (!authorMap[p.author]) authorMap[p.author] = { name: p.author, initial: p.authorInitial, kota: p.authorKota, count: 0 };
+    authorMap[p.author].count++;
+  });
+  const topAuthors = Object.values(authorMap).sort((a,b) => b.count-a.count).slice(0,4);
+  const colors = ['bg-blue','bg-orange','bg-red','bg-teal'];
+  document.getElementById('topAuthors').innerHTML = topAuthors.map((a,i) => `
+    <div class="top-author">
+      <div class="ta-av ${colors[i]}" style="color:white">${a.initial}</div>
+      <div class="ta-info"><strong>${a.name}</strong><span>${a.kota} · ${a.count} cerita</span></div>
+    </div>
+  `).join('');
+
+  // Categories
+  const catMap = {};
+  posts.forEach(p => { catMap[p.category] = (catMap[p.category]||0)+1; });
+  document.getElementById('catStats').innerHTML = Object.entries(catMap)
+    .sort((a,b)=>b[1]-a[1])
+    .map(([cat,count]) => `<div class="cat-stat"><span class="cs-name">${cat}</span><span class="cs-count">${count}</span></div>`)
+    .join('');
+}
+
+function filterPosts(btn, cat) {
+  document.querySelectorAll('.filter-chips .chip').forEach(c => c.classList.remove('active','c-blue'));
+  btn.classList.add('active','c-blue');
+  currentFilter = cat;
+  displayCount = 4;
+  renderPosts();
+}
+
+function sortPosts(btn, sort) {
+  document.querySelectorAll('.sp-sort').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentSort = sort;
+  renderPosts();
+}
+
+function loadMore() { displayCount += 4; renderPosts(); }
+
+function likePost(id, el) {
+  if (!Auth.isLoggedIn()) { openModal('authModal'); return; }
+  const likes = Posts.like(id);
+  const user = Auth.currentUser();
+  const liked = likes.includes(user.id);
+  el.innerHTML = `${liked?'❤️':'🤍'} ${likes.length}`;
+  el.classList.toggle('liked', liked);
+}
+
+function openPost(id) {
+  const p = Posts.getById(id);
+  if (!p) return;
+  // Increment view
+  const posts = Posts.getAll();
+  const idx = posts.findIndex(x => x.id == id);
+  if (idx > -1) { posts[idx].views = (posts[idx].views||0)+1; Posts.save(posts); }
+
+  const overlay = document.getElementById('postDetailOverlay');
+  document.getElementById('postDetailContent').innerHTML = `
+    <a class="pd-back" onclick="closePost()">← Kembali ke Sudut Pandang</a>
+    <div class="pd-hero-img bg-orange">${p.emoji}</div>
+    <div class="post-cat-row"><span class="post-cat">${p.category}</span><span class="tag">${p.date}</span></div>
+    <h1 class="pd-title">${p.title}</h1>
+    <div class="pd-meta">
+      <div class="pd-author">
+        <div class="pd-av">${p.authorInitial}</div>
+        <div class="pd-author-info"><strong>${p.author}</strong><span>${p.authorKota} · ${p.date}</span></div>
+      </div>
+      <span style="font-family:var(--font-display);font-size:12px;font-weight:600;color:#888">👁 ${p.views} views · ❤️ ${(p.likes||[]).length} likes</span>
+    </div>
+    <div class="pd-body">${p.body.split('\n').filter(l=>l.trim()).map(l=>`<p>${l}</p>`).join('')}</div>
+    <div class="pd-actions">
+      <button class="btn btn-primary" onclick="likePostDetail(${p.id}, this)">❤️ Suka (${(p.likes||[]).length})</button>
+      <button class="btn btn-outline" onclick="sharePost('${p.title}')">📤 Bagikan</button>
+      <button class="btn btn-outline" onclick="closePost()">← Kembali</button>
+    </div>
+  `;
+  overlay.classList.add('open');
+  window.scrollTo(0,0);
+}
+
+function closePost() { document.getElementById('postDetailOverlay').classList.remove('open'); renderPosts(); }
+
+function likePostDetail(id, btn) {
+  if (!Auth.isLoggedIn()) { closePost(); openModal('authModal'); return; }
+  const likes = Posts.like(id);
+  const user = Auth.currentUser();
+  const liked = likes.includes(user.id);
+  btn.innerHTML = `${liked?'❤️':'🤍'} Suka (${likes.length})`;
+}
+
+function sharePost(title) {
+  if (navigator.share) navigator.share({ title, url: window.location.href });
+  else { navigator.clipboard.writeText(window.location.href); showToast('Link disalin! 📋'); }
+}
+
+// Write
+function openWrite() {
+  if (!Auth.isLoggedIn()) { openModal('authModal'); return; }
+  document.getElementById('writeOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeWrite() {
+  document.getElementById('writeOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function selectCat(btn) {
+  document.querySelectorAll('.cat-pick').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedCat = btn.textContent;
+}
+function selectEmoji(btn) {
+  document.querySelectorAll('.ep-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedEmoji = btn.textContent;
+}
+
+function submitPost() {
+  const title = document.getElementById('writeTitle').value.trim();
+  const body = document.getElementById('writeBody').value.trim();
+  const err = document.getElementById('writeError');
+  err.classList.remove('show');
+  if (!title) { err.textContent = 'Judul tidak boleh kosong.'; err.classList.add('show'); return; }
+  if (body.length < 50) { err.textContent = 'Cerita minimal 50 karakter.'; err.classList.add('show'); return; }
+  const user = Auth.currentUser();
+  const post = {
+    id: Date.now(), title, body, category: selectedCat, emoji: selectedEmoji,
+    author: user.name, authorInitial: user.avatar, authorKota: user.kota || 'Indonesia',
+    date: new Date().toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}),
+    likes: [], views: 0
+  };
+  Posts.add(post);
+  closeWrite();
+  document.getElementById('writeTitle').value = '';
+  document.getElementById('writeBody').value = '';
+  showToast('Cerita berhasil dipublikasikan! 🎉', 'success');
+  currentFilter = 'all'; currentSort = 'latest'; displayCount = 4;
+  renderPosts(); renderSidebar();
+}
+
+document.getElementById('writeOverlay').addEventListener('click', e => { if (e.target === document.getElementById('writeOverlay')) closeWrite(); });
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderPosts();
+  renderSidebar();
+  // Auto-open write if URL param
+  if (new URLSearchParams(window.location.search).get('write')) openWrite();
+  // Auto-open post if URL param
+  const postId = new URLSearchParams(window.location.search).get('post');
+  if (postId) { setTimeout(() => openPost(parseInt(postId)), 300); }
+});
+</script>
+</body>
+</html>

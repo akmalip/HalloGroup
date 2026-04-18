@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="id" style="background:#F2EFE8;color:#181818;cursor:auto;overflow:auto;height:auto">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panduan Transportasi — Sukabumi Discovery</title>
+<link rel="stylesheet" href="/SukabumiDiscovery/shared.css">
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="firebase-config.js"></script>
+<style>
+.ac-header { background: var(--dark); color: var(--white); padding: 110px 40px 50px; position: relative; overflow: hidden; }
+.ac-header::before { content: '🚌'; position: absolute; right: 5%; top: 50%; transform: translateY(-50%); font-size: 180px; opacity: 0.1; pointer-events: none; }
+.ac-header h1 { font-family: var(--font-display); font-size: clamp(40px,7vw,80px); font-weight: 800; line-height: 1; letter-spacing: -0.03em; }
+.ac-header p { font-size: 17px; color: rgba(255,255,255,0.7); margin-top: 14px; max-width: 480px; line-height: 1.7; }
+
+.ac-body { max-width: var(--max-w); margin: 0 auto; padding: 50px 40px; }
+
+/* Transport cards */
+.transport-block { margin-bottom: 50px; }
+.tb-header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; padding-bottom: 14px; border-bottom: 2px solid var(--dark); }
+.tb-icon { width: 52px; height: 52px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 26px; border: 2px solid var(--dark); flex-shrink: 0; }
+.tb-header h3 { font-family: var(--font-display); font-size: 22px; font-weight: 800; }
+.tb-header p { font-size: 14px; color: #666; margin-top: 3px; }
+
+.route-cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+.route-card { border: 2px solid var(--dark); border-radius: 18px; padding: 20px; background: var(--white); transition: transform 0.25s, box-shadow 0.25s; }
+.route-card:hover { transform: translateY(-4px); box-shadow: 4px 4px 0 var(--dark); }
+.rc-route { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.rc-from, .rc-to { font-family: var(--font-display); font-size: 14px; font-weight: 700; }
+.rc-arrow { font-size: 18px; color: var(--orange); flex-shrink: 0; }
+.rc-details { display: flex; flex-direction: column; gap: 6px; }
+.rc-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; padding: 5px 0; border-bottom: 1px solid #f0f0f0; }
+.rc-row:last-child { border: none; }
+.rc-row .rk { color: #888; }
+.rc-row .rv { font-family: var(--font-display); font-weight: 700; font-size: 12px; }
+.rc-badge { display: inline-flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+
+/* Schedule table */
+.schedule-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+.schedule-table th { background: var(--dark); color: var(--white); padding: 12px 14px; font-family: var(--font-display); font-size: 12px; font-weight: 700; text-align: left; text-transform: uppercase; letter-spacing: 0.05em; }
+.schedule-table th:first-child { border-radius: 12px 0 0 0; }
+.schedule-table th:last-child { border-radius: 0 12px 0 0; }
+.schedule-table td { padding: 12px 14px; font-size: 13px; border-bottom: 1px solid #eee; }
+.schedule-table tr:last-child td { border: none; }
+.schedule-table tr:hover td { background: var(--cream); }
+.sched-wrap { border: 2px solid var(--dark); border-radius: 16px; overflow: hidden; }
+
+/* Angkot map */
+.angkot-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; }
+.angkot-card { border: 2px solid var(--dark); border-radius: 16px; padding: 16px; background: var(--white); }
+.ank-line { font-family: var(--font-display); font-size: 24px; font-weight: 800; color: var(--blue); margin-bottom: 6px; }
+.ank-route { font-size: 12px; color: #555; line-height: 1.5; }
+.ank-meta { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: #888; margin-top: 8px; text-transform: uppercase; }
+
+/* Tip banner */
+.tip-banner { background: var(--orange); border: 2px solid var(--dark); border-radius: 18px; padding: 22px 26px; display: flex; gap: 16px; align-items: flex-start; margin-bottom: 20px; }
+.tip-banner .tip-icon { font-size: 28px; flex-shrink: 0; }
+.tip-banner .tip-text { font-size: 14px; color: rgba(255,255,255,0.9); line-height: 1.6; }
+.tip-banner .tip-text strong { color: var(--white); font-family: var(--font-display); }
+
+@media (max-width: 900px) {
+  .ac-body { padding: 40px 20px; }
+  .ac-header { padding: 90px 20px 40px; }
+  .route-cards { grid-template-columns: 1fr 1fr; }
+  .angkot-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 580px) {
+  .route-cards { grid-template-columns: 1fr; }
+  .angkot-grid { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body style="background:#F2EFE8;color:#181818;overflow-x:hidden;cursor:auto" style="background:#F2EFE8;color:#181818;overflow-x:hidden;cursor:auto">
+<script src="shared.js"></script>
+<script>renderNav('access');</script>
+
+<div class="ac-header">
+  <div class="breadcrumb" style="color:rgba(255,255,255,0.5)">
+    <a href="/SukabumiDiscovery" style="color:rgba(255,255,255,0.5)">Home</a><span>›</span><span>Panduan Akses</span>
+  </div>
+  <h1>Gimana cara<br>sampai Sukabumi?</h1>
+  <p>Panduan lengkap transportasi dari dan ke Sukabumi — rute, jadwal, harga, dan tips praktis biar perjalananmu lancar.</p>
+</div>
+
+<div class="color-band"></div>
+
+<div class="ac-body">
+  
+  <div class="tip-banner reveal">
+    <div class="tip-icon">💡</div>
+    <div class="tip-text"><strong>Pro Tip:</strong> Untuk perjalanan dari Jakarta atau Bandung, waktu tempuh bisa sangat bervariasi tergantung kondisi lalu lintas dan hari. Hindari berangkat Jumat sore atau Sabtu pagi karena macet bisa 2–3x lebih lama dari biasanya.</div>
+  </div>
+
+  <!-- Bus Antar Kota -->
+  <div class="transport-block">
+    <div class="tb-header">
+      <div class="tb-icon bg-blue" style="color:white">🚌</div>
+      <div><h3>Bus Antar Kota</h3><p>Pilihan paling ekonomis. Tersedia berbagai kelas dari regular sampai executive.</p></div>
+    </div>
+    <div class="route-cards">
+      <div class="route-card reveal">
+        <div class="rc-route"><span class="rc-from">Jakarta</span><span class="rc-arrow">→</span><span class="rc-to">Sukabumi</span></div>
+        <div class="rc-details">
+          <div class="rc-row"><span class="rk">Terminal asal</span><span class="rv">Pulogadung / Kampung Rambutan</span></div>
+          <div class="rc-row"><span class="rk">Waktu tempuh</span><span class="rv">3–5 jam</span></div>
+          <div class="rc-row"><span class="rk">Harga</span><span class="rv">Rp 40.000–80.000</span></div>
+          <div class="rc-row"><span class="rk">Frekuensi</span><span class="rv">Setiap 30–60 menit</span></div>
+        </div>
+        <div class="rc-badge"><span class="tag">Primajasa</span><span class="tag">Garuda Maju</span></div>
+      </div>
+      <div class="route-card reveal">
+        <div class="rc-route"><span class="rc-from">Bandung</span><span class="rc-arrow">→</span><span class="rc-to">Sukabumi</span></div>
+        <div class="rc-details">
+          <div class="rc-row"><span class="rk">Terminal asal</span><span class="rv">Leuwipanjang</span></div>
+          <div class="rc-row"><span class="rk">Waktu tempuh</span><span class="rv">2,5–3,5 jam</span></div>
+          <div class="rc-row"><span class="rk">Harga</span><span class="rv">Rp 35.000–60.000</span></div>
+          <div class="rc-row"><span class="rk">Frekuensi</span><span class="rv">Setiap 1 jam</span></div>
+        </div>
+        <div class="rc-badge"><span class="tag">Primajasa</span><span class="tag">Harapan Jaya</span></div>
+      </div>
+      <div class="route-card reveal">
+        <div class="rc-route"><span class="rc-from">Bogor</span><span class="rc-arrow">→</span><span class="rc-to">Sukabumi</span></div>
+        <div class="rc-details">
+          <div class="rc-row"><span class="rk">Terminal asal</span><span class="rv">Baranangsiang</span></div>
+          <div class="rc-row"><span class="rk">Waktu tempuh</span><span class="rv">1,5–2 jam</span></div>
+          <div class="rc-row"><span class="rk">Harga</span><span class="rv">Rp 25.000–45.000</span></div>
+          <div class="rc-row"><span class="rk">Frekuensi</span><span class="rv">Setiap 30 menit</span></div>
+        </div>
+        <div class="rc-badge"><span class="tag">Reguler</span><span class="tag">AC tersedia</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Kereta Api -->
+  <div class="transport-block">
+    <div class="tb-header">
+      <div class="tb-icon bg-orange" style="color:white">🚂</div>
+      <div><h3>Kereta Api</h3><p>Nyaman dan bebas macet. KA Pangrango melayani rute Bogor–Sukabumi setiap hari.</p></div>
+    </div>
+    <div class="tip-banner" style="background:var(--cream);border-color:var(--dark);margin-bottom:16px">
+      <div class="tip-icon">🎫</div>
+      <div class="tip-text" style="color:var(--dark)"><strong>Booking tiket online</strong> di KAI Access atau kai.id. Tiket bisa habis di akhir pekan — booking minimal H-7 untuk weekend.</div>
+    </div>
+    <div class="sched-wrap">
+      <table class="schedule-table">
+        <thead><tr><th>Kereta</th><th>Dari</th><th>Tujuan</th><th>Berangkat</th><th>Tiba</th><th>Tarif</th></tr></thead>
+        <tbody>
+          <tr><td><strong>KA Pangrango (Pagi)</strong></td><td>Bogor</td><td>Sukabumi</td><td>06:00</td><td>08:15</td><td>Rp 30.000</td></tr>
+          <tr><td><strong>KA Pangrango (Siang)</strong></td><td>Bogor</td><td>Sukabumi</td><td>11:00</td><td>13:15</td><td>Rp 30.000</td></tr>
+          <tr><td><strong>KA Pangrango (Sore)</strong></td><td>Bogor</td><td>Sukabumi</td><td>16:00</td><td>18:15</td><td>Rp 30.000</td></tr>
+          <tr><td><strong>KA Pangrango (Pagi)</strong></td><td>Sukabumi</td><td>Bogor</td><td>07:00</td><td>09:15</td><td>Rp 30.000</td></tr>
+          <tr><td><strong>KA Pangrango (Sore)</strong></td><td>Sukabumi</td><td>Bogor</td><td>14:30</td><td>16:45</td><td>Rp 30.000</td></tr>
+          <tr><td><strong>KA Pangrango (Malam)</strong></td><td>Sukabumi</td><td>Bogor</td><td>19:15</td><td>21:30</td><td>Rp 30.000</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Shuttle Travel -->
+  <div class="transport-block">
+    <div class="tb-header">
+      <div class="tb-icon bg-teal">🚐</div>
+      <div><h3>Shuttle Travel</h3><p>Door-to-door, nyaman, dan bisa di-book via WhatsApp atau aplikasi. Cocok untuk rombongan kecil.</p></div>
+    </div>
+    <div class="route-cards">
+      <div class="route-card reveal">
+        <div class="rc-route"><span class="rc-from">Jakarta</span><span class="rc-arrow">→</span><span class="rc-to">Sukabumi</span></div>
+        <div class="rc-details">
+          <div class="rc-row"><span class="rk">Operasional</span><span class="rv">06:00–21:00</span></div>
+          <div class="rc-row"><span class="rk">Harga</span><span class="rv">Rp 80.000–120.000</span></div>
+          <div class="rc-row"><span class="rk">Pickup</span><span class="rv">Door-to-door</span></div>
+        </div>
+        <div class="rc-badge"><span class="tag">X-Trans</span><span class="tag">Day Trans</span></div>
+      </div>
+      <div class="route-card reveal">
+        <div class="rc-route"><span class="rc-from">Bandung</span><span class="rc-arrow">→</span><span class="rc-to">Sukabumi</span></div>
+        <div class="rc-details">
+          <div class="rc-row"><span class="rk">Operasional</span><span class="rv">07:00–19:00</span></div>
+          <div class="rc-row"><span class="rk">Harga</span><span class="rv">Rp 75.000–110.000</span></div>
+          <div class="rc-row"><span class="rk">Pickup</span><span class="rv">Beberapa titik</span></div>
+        </div>
+        <div class="rc-badge"><span class="tag">Cipanas Travel</span></div>
+      </div>
+      <div class="route-card reveal">
+        <div class="rc-route"><span class="rc-from">Sukabumi</span><span class="rc-arrow">→</span><span class="rc-to">Ciletuh</span></div>
+        <div class="rc-details">
+          <div class="rc-row"><span class="rk">Operasional</span><span class="rv">Sesuai booking</span></div>
+          <div class="rc-row"><span class="rk">Harga</span><span class="rv">Rp 250.000–400.000/mobil</span></div>
+          <div class="rc-row"><span class="rk">Kapasitas</span><span class="rv">4–7 penumpang</span></div>
+        </div>
+        <div class="rc-badge"><span class="tag">Charter</span><span class="tag">WhatsApp booking</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobil Colt -->
+  <div class="transport-block">
+    <div class="tb-header">
+      <div class="tb-icon bg-yellow">🚐</div>
+      <div><h3>Mobil Colt & ELF</h3><p>Angkutan antar kecamatan — backbone mobilitas Sukabumi. Murah dan rutenya luas.</p></div>
+    </div>
+    <div class="route-cards">
+      <div class="route-card reveal">
+        <div class="rc-route"><span class="rc-from">Terminal</span><span class="rc-arrow">→</span><span class="rc-to">Palabuhanratu</span></div>
+        <div class="rc-details">
+          <div class="rc-row"><span class="rk">Waktu tempuh</span><span class="rv">~1,5 jam</span></div>
+          <div class="rc-row"><span class="rk">Harga</span><span class="rv">Rp 25.000–35.000</span></div>
+          <div class="rc-row"><span class="rk">Frekuensi</span><span class="rv">Setiap 30–45 menit</span></div>
+        </div>
+      </div>
+      <div class="route-card reveal">
+        <div class="rc-route"><span class="rc-from">Sukabumi</span><span class="rc-arrow">→</span><span class="rc-to">Cianjur</span></div>
+        <div class="rc-details">
+          <div class="rc-row"><span class="rk">Waktu tempuh</span><span class="rv">~1 jam</span></div>
+          <div class="rc-row"><span class="rk">Harga</span><span class="rv">Rp 20.000–30.000</span></div>
+          <div class="rc-row"><span class="rk">Frekuensi</span><span class="rv">Sering</span></div>
+        </div>
+      </div>
+      <div class="route-card reveal">
+        <div class="rc-route"><span class="rc-from">Sukabumi</span><span class="rc-arrow">→</span><span class="rc-to">Cicurug/Cibadak</span></div>
+        <div class="rc-details">
+          <div class="rc-row"><span class="rk">Waktu tempuh</span><span class="rv">~45 menit</span></div>
+          <div class="rc-row"><span class="rk">Harga</span><span class="rv">Rp 15.000–20.000</span></div>
+          <div class="rc-row"><span class="rk">Frekuensi</span><span class="rv">Sangat sering</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Angkot Kota -->
+  <div class="transport-block">
+    <div class="tb-header">
+      <div class="tb-icon bg-red" style="color:white">🛺</div>
+      <div><h3>Angkot Kota Sukabumi</h3><p>Transportasi dalam kota. Ada 8 trayek utama yang menjangkau hampir seluruh penjuru kota. Tarif flat Rp 5.000.</p></div>
+    </div>
+    <div class="angkot-grid">
+      <div class="angkot-card reveal"><div class="ank-line">01</div><div class="ank-route">Terminal Sukabumi ↔ Stasiun ↔ Cisaat</div><div class="ank-meta">Warna: Merah</div></div>
+      <div class="angkot-card reveal"><div class="ank-line">02</div><div class="ank-route">Alun-alun ↔ Pasar Pelita ↔ Limus Nunggal</div><div class="ank-meta">Warna: Kuning</div></div>
+      <div class="angkot-card reveal"><div class="ank-line">03</div><div class="ank-route">Terminal ↔ Gunung Puyuh ↔ Cikundul</div><div class="ank-meta">Warna: Hijau</div></div>
+      <div class="angkot-card reveal"><div class="ank-line">04</div><div class="ank-route">Alun-alun ↔ RSUD ↔ Subangjaya</div><div class="ank-meta">Warna: Biru</div></div>
+      <div class="angkot-card reveal"><div class="ank-line">05</div><div class="ank-route">Terminal ↔ Tipar ↔ Baros</div><div class="ank-meta">Warna: Orange</div></div>
+      <div class="angkot-card reveal"><div class="ank-line">06</div><div class="ank-route">Alun-alun ↔ Cikondang ↔ Jayamekar</div><div class="ank-meta">Warna: Ungu</div></div>
+      <div class="angkot-card reveal"><div class="ank-line">07</div><div class="ank-route">Stasiun ↔ Jl. Ahmad Yani ↔ Selabatu</div><div class="ank-meta">Warna: Coklat</div></div>
+      <div class="angkot-card reveal"><div class="ank-line">08</div><div class="ank-route">Terminal ↔ Nyomplong ↔ Kebonjati</div><div class="ank-meta">Warna: Putih</div></div>
+    </div>
+    <div style="margin-top:14px;padding:14px 18px;background:var(--cream);border-radius:14px;border:2px solid #ddd;font-size:13px;color:#555">
+      💡 Angkot beroperasi <strong>05:00–21:00</strong>. Tarif flat <strong>Rp 5.000</strong> untuk jarak berapapun dalam kota. Bayar tunai ke kondektur.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
