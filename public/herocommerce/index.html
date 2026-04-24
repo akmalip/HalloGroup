@@ -419,27 +419,32 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
         </div>
         <div id="ads-content" style="display:none">
           <div class="g4">
-            <div class="kpi"><div class="kpi-bar" style="background:var(--accent)"></div><div class="kpi-lbl">Total Ad Spend</div><div class="kpi-val" style="color:var(--accent)" id="ads-spend">—</div></div>
-            <div class="kpi"><div class="kpi-bar" style="background:var(--green)"></div><div class="kpi-lbl">Blended ROAS</div><div class="kpi-val" style="color:var(--green)" id="ads-roas">—</div></div>
-            <div class="kpi"><div class="kpi-bar" style="background:var(--teal)"></div><div class="kpi-lbl">New Buyer via Ads</div><div class="kpi-val" style="color:var(--teal)" id="ads-nb">—</div></div>
-            <div class="kpi"><div class="kpi-bar" style="background:var(--amber)"></div><div class="kpi-lbl">CAC (New Buyer)</div><div class="kpi-val" style="color:var(--amber)" id="ads-cac">—</div></div>
+            <div class="kpi"><div class="kpi-bar" style="background:var(--accent)"></div><div class="kpi-lbl">Total Ad Spend</div><div class="kpi-val" style="color:var(--accent)" id="ads-spend">—</div><div style="font-size:11px;color:var(--t3)">ShopeeAds Mar 2026</div></div>
+            <div class="kpi"><div class="kpi-bar" style="background:var(--green)"></div><div class="kpi-lbl">Blended ROAS</div><div class="kpi-val" style="color:var(--green)" id="ads-roas">—</div><div style="font-size:11px;color:var(--t3)">GMV / Expense</div></div>
+            <div class="kpi"><div class="kpi-bar" style="background:var(--teal)"></div><div class="kpi-lbl">Est. New Buyer via Ads</div><div class="kpi-val" style="color:var(--teal)" id="ads-nb">—</div><div style="font-size:11px;color:var(--t3)">estimated</div></div>
+            <div class="kpi"><div class="kpi-bar" style="background:var(--amber)"></div><div class="kpi-lbl">Cost per Conversion</div><div class="kpi-val" style="color:var(--amber)" id="ads-cac">—</div><div style="font-size:11px;color:var(--t3)">per converted buyer</div></div>
           </div>
+          <div class="g4" id="ads-kpi-extra" style="margin-bottom:16px"></div>
           <div class="g2">
             <div class="card">
-              <div class="card-hd">New vs Existing Buyer from Ads</div>
-              <div class="card-sub">Breakdown buyer yang ter-acquire dari masing-masing platform</div>
+              <div class="card-hd">New vs Existing Buyer (Estimated)</div>
+              <div class="card-sub">Breakdown per tipe kampanye — upload Customer History untuk data akurat</div>
               <div id="ads-nb-breakdown" style="margin-top:10px"></div>
             </div>
             <div class="card">
-              <div class="card-hd">Spend & ROAS per Platform</div>
-              <div class="card-sub">Efisiensi antar platform iklan</div>
-              <div style="position:relative;height:200px"><canvas id="ads-chart" role="img" aria-label="Ads chart">Ads</canvas></div>
+              <div class="card-hd">Spend & ROAS per Campaign</div>
+              <div class="card-sub">Bar = spend · Line = ROAS · Top 8 by spend</div>
+              <div style="display:flex;gap:12px;margin-bottom:8px">
+                <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--t2)"><span style="width:10px;height:10px;border-radius:2px;background:#FF6B3566;display:inline-block"></span>Spend</span>
+                <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--t2)"><span style="width:20px;height:2px;border-radius:2px;background:#0A8F5C;display:inline-block"></span>ROAS</span>
+              </div>
+              <div style="position:relative;height:210px"><canvas id="ads-chart" role="img" aria-label="Ads chart">Ads</canvas></div>
             </div>
           </div>
           <div class="card">
-            <div class="card-hd">Campaign Performance</div>
-            <div class="card-sub">Detail semua kampanye aktif</div>
-            <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Campaign</th><th>Platform</th><th>Spend</th><th>Revenue</th><th>ROAS</th><th>New Buyer%</th><th>CAC</th><th>Status</th></tr></thead><tbody id="ads-camp-body"></tbody></table></div>
+            <div class="card-hd">Campaign Performance Detail</div>
+            <div class="card-sub">Semua kampanye ShopeeAds Maret 2026 — ROAS ≥4x = Good, &lt;2x = Review</div>
+            <div style="overflow-x:auto"><table class="tbl" style="margin-top:10px"><thead><tr><th>Campaign Name</th><th>Status</th><th>Spend</th><th>GMV</th><th>ROAS</th><th>Clicks</th><th>Conversions</th><th>Verdict</th></tr></thead><tbody id="ads-camp-body"></tbody></table></div>
           </div>
         </div>
       </div>
@@ -772,20 +777,32 @@ function handleFiles(e) {
     reader.onload = function(ev) {
       try {
         let rows = [];
+        const rawText = ext === 'csv' ? ev.target.result : null;
+
         if (ext === 'csv') {
-          const result = Papa.parse(ev.target.result, { header: true, skipEmptyLines: true });
-          rows = result.data;
+          // Detect Shopee Ads CSV (has metadata header rows)
+          const firstLine = rawText.split('\n')[0] || '';
+          if (firstLine.includes('CPC Ads Report') || firstLine.includes('Shopee')) {
+            // Skip first 7 metadata lines, parse from line 8
+            const dataLines = rawText.split('\n').slice(7).join('\n');
+            const result = Papa.parse(dataLines, { header: true, skipEmptyLines: true, dynamicTyping: false });
+            rows = result.data.filter(r => r['Ad Name'] || r['Sequence']);
+          } else {
+            const result = Papa.parse(rawText, { header: true, skipEmptyLines: true });
+            rows = result.data;
+          }
         } else {
           const wb = XLSX.read(ev.target.result, { type: 'array', cellDates: false });
-          const sn = wb.SheetNames[0];
+          // Try sheet named 'orders' first, else first sheet
+          const sn = wb.SheetNames.includes('orders') ? 'orders' : wb.SheetNames[0];
           rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], { defval: '' });
         }
 
         const fileObj = { name: file.name, size: file.size, type, rows, rowCount: rows.length };
+        const proj = state.projects.find(p => p.id === state.selProject);
 
         if (type === 'orders' && rows.length > 0) {
           const parsed = parseOrderData(rows);
-          const proj = state.projects.find(p => p.id === state.selProject);
           if (proj) {
             if (!proj.data) proj.data = {};
             const period = guessPeriod(file.name, rows);
@@ -798,22 +815,27 @@ function handleFiles(e) {
             if (!proj.months.includes(period)) proj.months.unshift(period);
           }
         } else if (type !== 'orders') {
-          const proj = state.projects.find(p => p.id === state.selProject);
           if (proj) {
             if (!proj.adsData) proj.adsData = {};
             proj.adsData[type] = rows;
             proj.hasAds = true;
+            proj._adsDataParsed = null; // reset cache
           }
         }
 
         state.uploadedFiles.push(fileObj);
+        saveToLocalStorage();
         renderFileList();
         renderProjList();
         renderTopbar();
         if (type === 'orders') renderKPITab();
+        if (type === 'marketplace' || type === 'meta' || type === 'tiktok' || type === 'google') {
+          // Switch to ads tab to show results
+          setTimeout(() => gotoTab('ads'), 300);
+        }
 
       } catch(err) {
-        alert('Error reading file: ' + err.message);
+        alert('Error reading file: ' + err.message + '\n\nTip: pastikan file tidak sedang dibuka di Excel.');
       }
     };
 
@@ -916,13 +938,47 @@ function initDemoProject() {
     color: '#FF6B35',
     platform: 'Shopee',
     hasData: true,
+    hasAds: true,
     months: ['2026-03'],
     latestPeriod: '2026-03',
     gmv: 32010.29,
     orders: 677,
-    data: { '2026-03': demoData }
+    data: { '2026-03': demoData },
+    _adsDataParsed: buildDemoAdsData(),
   });
   state.selProject = 'demo-bw';
+}
+
+function buildDemoAdsData() {
+  const campaigns = [
+    {name:"TOP10(68%sales) of Jan'26",status:'Ongoing',type:'Product Ad',impressions:62160,clicks:1051,ctr:1.69,conversions:67,directConversions:57,convRate:6.37,itemsSold:145,gmv:3107.23,directGmv:2259.03,spend:632.83,roas:4.91,directRoas:3.57,acos:20.37,bidding:'GMV Max Custom ROAS'},
+    {name:'250919 - Ultra Active Ads Group',status:'Ongoing',type:'Product Ad',impressions:53344,clicks:808,ctr:1.51,conversions:31,directConversions:25,convRate:3.84,itemsSold:83,gmv:1765.57,directGmv:1461.47,spend:256.90,roas:6.87,directRoas:5.69,acos:14.55,bidding:'GMV Max Custom ROAS'},
+    {name:'Absorbent',status:'Ongoing',type:'Product Ad',impressions:31835,clicks:648,ctr:2.04,conversions:43,directConversions:30,convRate:6.64,itemsSold:114,gmv:1759.14,directGmv:1195.83,spend:296.31,roas:5.94,directRoas:4.04,acos:16.84,bidding:'GMV Max Custom ROAS'},
+    {name:'250923 - Premium and Value Tape',status:'Paused',type:'Product Ad',impressions:52006,clicks:726,ctr:1.40,conversions:30,directConversions:27,convRate:4.13,itemsSold:67,gmv:1221.48,directGmv:1082.43,spend:278.11,roas:4.39,directRoas:3.89,acos:22.77,bidding:'GMV Max Custom ROAS'},
+    {name:'250923 - Wet Wipes Ads Group',status:'Paused',type:'Product Ad',impressions:35159,clicks:486,ctr:1.38,conversions:27,directConversions:24,convRate:5.56,itemsSold:79,gmv:1063.01,directGmv:1020.85,spend:176.33,roas:6.03,directRoas:5.79,acos:16.59,bidding:'GMV Max Custom ROAS'},
+    {name:'Shop Ad Auto',status:'Paused',type:'Shop Ad',impressions:31856,clicks:4033,ctr:12.66,conversions:29,directConversions:20,convRate:0.72,itemsSold:43,gmv:878.50,directGmv:544.34,spend:414.13,roas:2.12,directRoas:1.31,acos:47.14,bidding:'Auto Bidding'},
+    {name:'BW - Ultra Night Tape [6]',status:'Ongoing',type:'Product Ad',impressions:17713,clicks:383,ctr:2.16,conversions:28,directConversions:23,convRate:7.31,itemsSold:37,gmv:1113.65,directGmv:910.84,spend:166.83,roas:6.68,directRoas:5.46,acos:14.98,bidding:'GMV Max Auto Bidding'},
+    {name:'BW - Value Pull Up Carton [4]',status:'Ongoing',type:'Product Ad',impressions:14566,clicks:174,ctr:1.19,conversions:5,directConversions:4,convRate:2.87,itemsSold:8,gmv:391.87,directGmv:269.98,spend:103.06,roas:3.80,directRoas:2.62,acos:26.30,bidding:'GMV Max Auto Bidding'},
+    {name:'BW - Insert Pad (22pcs) [5]',status:'Paused',type:'Product Ad',impressions:21087,clicks:436,ctr:2.07,conversions:45,directConversions:35,convRate:10.32,itemsSold:59,gmv:831.52,directGmv:712.94,spend:203.29,roas:4.09,directRoas:3.51,acos:24.45,bidding:'GMV Max Auto Bidding'},
+    {name:'BW - Value Day Tape Carton [3]',status:'Paused',type:'Product Ad',impressions:15397,clicks:191,ctr:1.24,conversions:12,directConversions:9,convRate:6.28,itemsSold:26,gmv:1400.92,directGmv:869.18,spend:186.40,roas:7.52,directRoas:4.66,acos:13.31,bidding:'GMV Max Custom ROAS'},
+    {name:'BW Men Incontinence Pad [3]',status:'Paused',type:'Product Ad',impressions:15022,clicks:213,ctr:1.42,conversions:30,directConversions:26,convRate:14.08,itemsSold:60,gmv:507.25,directGmv:459.04,spend:279.44,roas:1.82,directRoas:1.64,acos:55.09,bidding:'GMV Max Custom ROAS'},
+    {name:'3M Cavilon Cream 92g [3]',status:'Paused',type:'Product Ad',impressions:14414,clicks:245,ctr:1.70,conversions:15,directConversions:13,convRate:6.12,itemsSold:25,gmv:704.29,directGmv:615.49,spend:216.97,roas:3.25,directRoas:2.84,acos:30.81,bidding:'GMV Max Custom ROAS'},
+    {name:'ASSURE Underpads [5]',status:'Paused',type:'Product Ad',impressions:12869,clicks:474,ctr:3.68,conversions:46,directConversions:42,convRate:9.70,itemsSold:78,gmv:1502.16,directGmv:1461.34,spend:205.12,roas:7.32,directRoas:7.12,acos:13.65,bidding:'GMV Max Custom ROAS'},
+    {name:'BW Generation Shop Ads',status:'Paused',type:'Shop Ad',impressions:0,clicks:408,ctr:2.59,conversions:22,directConversions:18,convRate:5.39,itemsSold:36,gmv:944.11,directGmv:742.08,spend:210.90,roas:4.48,directRoas:3.52,acos:22.34,bidding:'Auto Bidding'},
+    {name:'250923 - Underpad Ads Group',status:'Paused',type:'Product Ad',impressions:10786,clicks:264,ctr:2.45,conversions:7,directConversions:6,convRate:2.65,itemsSold:21,gmv:301.26,directGmv:218.27,spend:50.24,roas:6.00,directRoas:4.34,acos:16.68,bidding:'GMV Max Custom ROAS'},
+  ];
+  const totals = campaigns.reduce((acc,c)=>{
+    acc.spend+=c.spend;acc.gmv+=c.gmv;acc.impressions+=c.impressions;
+    acc.clicks+=c.clicks;acc.conversions+=c.conversions;acc.itemsSold+=c.itemsSold;
+    return acc;
+  },{spend:0,gmv:0,impressions:0,clicks:0,conversions:0,itemsSold:0});
+  totals.roas=totals.gmv/totals.spend;
+  totals.ctr=(totals.clicks/totals.impressions)*100;
+  totals.convRate=(totals.conversions/totals.clicks)*100;
+  totals.cpc=totals.spend/totals.clicks;
+  totals.cpa=totals.spend/totals.conversions;
+  totals.estNewBuyerPct=55;
+  return {campaigns,totals};
 }
 
 function buildDemoData() {
@@ -1475,10 +1531,165 @@ function renderProdTab(data) {
 // ═══════════════════════════════════════════════════════════
 // RENDER: ADS TAB
 // ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// PARSE ADS DATA (Shopee Ads CSV format)
+// ═══════════════════════════════════════════════════════════
+function parseShopeeAds(rows) {
+  // Clean numeric values
+  function cleanNum(v) {
+    if (v === null || v === undefined || v === '' || v === '-') return 0;
+    return parseFloat(String(v).replace(/%/g,'').replace(/,/g,'')) || 0;
+  }
+  const campaigns = rows.map(r => ({
+    name: (r['Ad Name'] || '').substring(0, 50),
+    status: r['Status'] || '',
+    type: r['Ads Type'] || '',
+    impressions: cleanNum(r['Impression']),
+    clicks: cleanNum(r['Clicks']),
+    ctr: cleanNum(r['CTR']),
+    conversions: cleanNum(r['Conversions']),
+    directConversions: cleanNum(r['Direct Conversions']),
+    convRate: cleanNum(r['Conversion Rate']),
+    itemsSold: cleanNum(r['Items Sold']),
+    gmv: cleanNum(r['GMV']),
+    directGmv: cleanNum(r['Direct GMV']),
+    spend: cleanNum(r['Expense']),
+    roas: cleanNum(r['ROAS']),
+    directRoas: cleanNum(r['Direct ROAS']),
+    acos: cleanNum(r['ACOS']),
+    bidding: r['Bidding Method'] || '',
+  })).filter(c => c.name);
+
+  const totals = campaigns.reduce((acc, c) => {
+    acc.spend += c.spend; acc.gmv += c.gmv; acc.impressions += c.impressions;
+    acc.clicks += c.clicks; acc.conversions += c.conversions; acc.itemsSold += c.itemsSold;
+    return acc;
+  }, { spend: 0, gmv: 0, impressions: 0, clicks: 0, conversions: 0, itemsSold: 0 });
+
+  totals.roas = totals.spend > 0 ? totals.gmv / totals.spend : 0;
+  totals.ctr = totals.impressions > 0 ? (totals.clicks / totals.impressions * 100) : 0;
+  totals.convRate = totals.clicks > 0 ? (totals.conversions / totals.clicks * 100) : 0;
+  totals.cpc = totals.clicks > 0 ? totals.spend / totals.clicks : 0;
+  totals.cpa = totals.conversions > 0 ? totals.spend / totals.conversions : 0;
+  // Estimate new vs existing (ShopeeAds typically acquire mix)
+  totals.estNewBuyerPct = 55; // Conservative estimate — Shopee Ads tend to reach existing shoppers too
+
+  return { campaigns, totals };
+}
+
 function renderAdsTab(proj) {
-  const hasAds = proj?.hasAds;
+  const hasAds = proj?.hasAds && proj?.adsData;
   document.getElementById('ads-nodata').style.display = hasAds ? 'none' : 'flex';
   document.getElementById('ads-content').style.display = hasAds ? 'block' : 'none';
+  if (!hasAds) return;
+
+  // Parse ads data
+  let adsData = proj._adsDataParsed;
+  if (!adsData) {
+    // Try overall data first
+    const rawOverall = proj.adsData['marketplace'] || proj.adsData['meta'] || proj.adsData['tiktok'];
+    if (!rawOverall) return;
+    adsData = parseShopeeAds(rawOverall);
+    proj._adsDataParsed = adsData;
+  }
+
+  const t = adsData.totals;
+
+  // KPIs
+  document.getElementById('ads-spend').textContent = fmtCurr(t.spend);
+  document.getElementById('ads-roas').textContent = t.roas.toFixed(2) + 'x';
+  document.getElementById('ads-nb').textContent = t.estNewBuyerPct + '%*';
+  document.getElementById('ads-cac').textContent = fmtCurr(t.cpa);
+
+  // Add extra KPI row
+  const kpiExtra = document.getElementById('ads-kpi-extra');
+  if (kpiExtra) {
+    kpiExtra.innerHTML = `
+      <div class="kpi"><div class="kpi-bar" style="background:var(--blue)"></div><div class="kpi-lbl">Impressions</div><div class="kpi-val" style="color:var(--blue)">${(t.impressions/1000).toFixed(0)}k</div><div style="font-size:11px;color:var(--t3)">total ad views</div></div>
+      <div class="kpi"><div class="kpi-bar" style="background:var(--teal)"></div><div class="kpi-lbl">Total Clicks</div><div class="kpi-val" style="color:var(--teal)">${t.clicks.toLocaleString()}</div><div style="font-size:11px;color:var(--t3)">CTR ${t.ctr.toFixed(2)}%</div></div>
+      <div class="kpi"><div class="kpi-bar" style="background:var(--green)"></div><div class="kpi-lbl">Conversions</div><div class="kpi-val" style="color:var(--green)">${t.conversions}</div><div style="font-size:11px;color:var(--t3)">conv rate ${t.convRate.toFixed(2)}%</div></div>
+      <div class="kpi"><div class="kpi-bar" style="background:var(--amber)"></div><div class="kpi-lbl">ACOS</div><div class="kpi-val" style="color:var(--amber)">${adsData.campaigns[0]?.acos?.toFixed(1)||'—'}%</div><div style="font-size:11px;color:var(--t3)">ad cost of sale</div></div>`;
+  }
+
+  // Campaign breakdown chart
+  dchart('ads-chart');
+  const topCamps = [...adsData.campaigns].sort((a,b) => b.spend - a.spend).slice(0, 8);
+  const ctx = document.getElementById('ads-chart');
+  if (ctx) {
+    state.charts['ads-chart'] = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: topCamps.map(c => c.name.length > 20 ? c.name.substring(0,18)+'…' : c.name),
+        datasets: [
+          { label: 'Spend (SGD)', data: topCamps.map(c => c.spend), backgroundColor: '#FF6B3566', borderRadius: 4, yAxisID: 'y' },
+          { label: 'ROAS', data: topCamps.map(c => c.roas), type: 'line', borderColor: '#0A8F5C', backgroundColor: 'transparent', pointRadius: 5, pointBackgroundColor: '#0A8F5C', yAxisID: 'y1', tension: 0.3 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#9097BA', font: { size: 9 }, maxRotation: 35 }, grid: { display: false } },
+          y: { ticks: { color: '#9097BA', font: { size: 10 }, callback: v => '$'+v }, grid: { color: '#E2E4F0' }, position: 'left' },
+          y1: { ticks: { color: '#0A8F5C', font: { size: 10 }, callback: v => v+'x' }, grid: { display: false }, position: 'right' }
+        }
+      }
+    });
+  }
+
+  // New vs existing breakdown (estimated from Shopee data)
+  const breakdown = document.getElementById('ads-nb-breakdown');
+  if (breakdown) {
+    // Group by type
+    const productAds = adsData.campaigns.filter(c => c.type === 'Product Ad');
+    const shopAds = adsData.campaigns.filter(c => c.type === 'Shop Ad');
+    const groups = [
+      { name: 'Product Ads (GMV Max)', spend: productAds.reduce((s,c)=>s+c.spend,0), gmv: productAds.reduce((s,c)=>s+c.gmv,0), newPct: 58, count: productAds.length },
+      { name: 'Shop Ads', spend: shopAds.reduce((s,c)=>s+c.spend,0), gmv: shopAds.reduce((s,c)=>s+c.gmv,0), newPct: 42, count: shopAds.length },
+    ];
+    breakdown.innerHTML = `
+      <div style="font-size:11px;color:var(--t3);margin-bottom:10px;font-style:italic">*Estimasi new vs existing buyer — upload Customer History file untuk data akurat</div>
+      ${groups.map(g => `
+      <div style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;margin-bottom:5px">
+          <span style="color:var(--text)">${g.name}</span>
+          <span style="color:var(--t3);font-weight:500">${g.newPct}% new · ${100-g.newPct}% existing</span>
+        </div>
+        <div style="display:flex;height:10px;border-radius:5px;overflow:hidden;gap:2px;margin-bottom:4px">
+          <div style="flex:${g.newPct};background:var(--accent);border-radius:4px 0 0 4px"></div>
+          <div style="flex:${100-g.newPct};background:var(--accent)33;border-radius:0 4px 4px 0"></div>
+        </div>
+        <div style="font-size:11px;color:var(--t3)">${fmtCurr(g.spend)} spend · ${fmtCurr(g.gmv)} GMV · ${g.count} campaigns</div>
+      </div>`).join('')}
+      <div style="display:flex;gap:14px;margin-top:10px;font-size:11px;color:var(--t3);font-weight:700">
+        <div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;border-radius:2px;background:var(--accent)"></div>New Buyer (est.)</div>
+        <div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;border-radius:2px;background:var(--accent)33"></div>Existing Buyer (est.)</div>
+      </div>`;
+  }
+
+  // Campaign table
+  const tbody = document.getElementById('ads-camp-body');
+  if (tbody) {
+    const sorted = [...adsData.campaigns].sort((a,b) => b.gmv - a.gmv);
+    tbody.innerHTML = sorted.map(c => {
+      const roasOk = c.roas >= 4;
+      const roasLow = c.roas < 2 && c.roas > 0;
+      const badge = c.spend === 0 ? `<span class="pill pn">No Spend</span>` :
+        roasLow ? `<span class="pill pr">⚠ Review</span>` :
+        roasOk ? `<span class="pill pg">✓ Good</span>` :
+        `<span class="pill pa">Monitor</span>`;
+      return `<tr>
+        <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;color:var(--text);font-size:11px">${c.name}</td>
+        <td><span class="pill ${c.status==='Ongoing'?'pg':'pn'}" style="font-size:9px">${c.status}</span></td>
+        <td class="num">${fmtCurr(c.spend)}</td>
+        <td class="num" style="color:var(--green)">${fmtCurr(c.gmv)}</td>
+        <td class="num" style="color:${c.roas>=5?'var(--green)':c.roas>=3?'var(--amber)':'var(--red)'}">${c.spend>0?c.roas.toFixed(2)+'x':'—'}</td>
+        <td class="num">${c.clicks.toLocaleString()}</td>
+        <td class="num">${c.conversions}</td>
+        <td>${badge}</td>
+      </tr>`;
+    }).join('');
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1725,6 +1936,7 @@ function createProject() {
   document.getElementById('np-name').value = '';
   document.getElementById('np-client').value = '';
   renderProjList();
+  saveToLocalStorage();
   gotoPage('dt');
 }
 
@@ -1735,9 +1947,64 @@ document.getElementById('modal-np').addEventListener('click', function(e) {
 });
 
 // ═══════════════════════════════════════════════════════════
+// PERSISTENCE — localStorage
+// ═══════════════════════════════════════════════════════════
+function saveToLocalStorage() {
+  try {
+    // Save projects metadata + parsed data (not raw rows — too large)
+    const toSave = state.projects.map(p => ({
+      id: p.id, name: p.name, client: p.client, color: p.color,
+      platform: p.platform, hasData: p.hasData, hasAds: p.hasAds,
+      months: p.months, latestPeriod: p.latestPeriod,
+      gmv: p.gmv, orders: p.orders,
+      // Save parsed data (not raw rows)
+      data: p.data ? Object.fromEntries(
+        Object.entries(p.data).map(([period, d]) => [period, {
+          gmv: d.gmv, aov: d.aov, completedOrders: d.completedOrders,
+          cancelledOrders: d.cancelledOrders, totalUniqueOrders: d.totalUniqueOrders,
+          uniqueBuyers: d.uniqueBuyers, newBuyers: d.newBuyers, repeatBuyers: d.repeatBuyers,
+          cancelRate: d.cancelRate, sellerDiscount: d.sellerDiscount,
+          daily: d.daily, hourMap: d.hourMap, wdayMap: d.wdayMap,
+          skus: d.skus, vouchers: d.vouchers, cancelReasons: d.cancelReasons,
+          shipMap: d.shipMap, statusCount: d.statusCount, topBuyers: d.topBuyers,
+          ordersWithVoucher: d.ordersWithVoucher, uniqueVouchers: d.uniqueVouchers,
+        }])
+      ) : {},
+      // Save parsed ads data
+      _adsDataParsed: p._adsDataParsed ? {
+        totals: p._adsDataParsed.totals,
+        campaigns: p._adsDataParsed.campaigns,
+      } : null,
+    }));
+    localStorage.setItem('ecominsight_projects', JSON.stringify(toSave));
+    localStorage.setItem('ecominsight_selProject', state.selProject || '');
+  } catch(e) {
+    console.warn('localStorage save failed (quota?):', e.message);
+  }
+}
+
+function loadFromLocalStorage() {
+  try {
+    const saved = localStorage.getItem('ecominsight_projects');
+    if (!saved) return false;
+    const projects = JSON.parse(saved);
+    if (!projects || !projects.length) return false;
+    state.projects = projects;
+    state.selProject = localStorage.getItem('ecominsight_selProject') || projects[0]?.id;
+    return true;
+  } catch(e) {
+    console.warn('localStorage load failed:', e);
+    return false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════
-initDemoProject();
+const loaded = loadFromLocalStorage();
+if (!loaded) {
+  initDemoProject();
+}
 renderProjList();
 gotoPage('ov');
 renderOvPage();
