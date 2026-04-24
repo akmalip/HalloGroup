@@ -1,0 +1,1930 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EcomInsight — Agency Analytics Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F4F5FA;--bg2:#FFFFFF;--bg3:#EDEEF5;--bg4:#E2E4F0;
+  --border:#DDE0EE;--border2:#C8CCE0;
+  --text:#18192E;--t2:#545878;--t3:#9097BA;
+  --accent:#FF6B35;--al:#FFF1EC;--a2:#E85C28;
+  --blue:#2057D4;--bl:#EEF4FF;
+  --green:#0A8F5C;--gl:#E8FAF3;
+  --amber:#C97A05;--aml:#FFF8E6;
+  --red:#C9272E;--rl:#FFF0F0;
+  --purple:#6830D1;--pl:#F2EEFF;
+  --teal:#0884A8;--tl:#E6F7FC;
+  --font:'Plus Jakarta Sans',sans-serif;--mono:'DM Mono',monospace;
+  --r:12px;--rs:8px;--rxs:6px;
+  --shadow:0 1px 3px rgba(0,0,0,0.08),0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,0.1),0 2px 4px rgba(0,0,0,0.06);
+}
+html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--text);font-size:13px;line-height:1.5}
+.app{display:flex;height:100vh;overflow:hidden}
+
+/* ── SIDEBAR ── */
+.sidebar{width:228px;height:100vh;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;z-index:50}
+.logo{padding:18px 16px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+.logo-mark{width:32px;height:32px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:white;flex-shrink:0;letter-spacing:-1px}
+.logo-text{font-size:14px;font-weight:800;color:var(--text);letter-spacing:-0.3px}
+.logo-sub{font-size:10px;color:var(--t3);font-weight:500;margin-top:1px}
+.sb-section{padding:16px 14px 5px;font-size:10px;font-weight:700;color:var(--t3);letter-spacing:1px;text-transform:uppercase}
+.nav-item{margin:1px 8px;padding:8px 10px;border-radius:var(--rs);cursor:pointer;display:flex;align-items:center;gap:9px;font-size:12px;font-weight:600;color:var(--t2);transition:all .15s;user-select:none;border:none;background:transparent;width:calc(100% - 16px);text-align:left}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:var(--al);color:var(--accent)}
+.nav-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0}
+.proj-item{margin:1px 8px;padding:7px 10px;border-radius:var(--rs);cursor:pointer;display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;color:var(--t2);transition:all .15s;border:none;background:transparent;width:calc(100% - 16px);text-align:left}
+.proj-item:hover{background:var(--bg3);color:var(--text)}
+.proj-item.active{background:var(--al);color:var(--accent)}
+.proj-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.proj-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.proj-month{font-size:9px;background:var(--bg3);color:var(--t3);padding:1px 5px;border-radius:8px;font-family:var(--mono)}
+.sb-btn{margin:8px;padding:8px 12px;border:1.5px dashed var(--border2);border-radius:var(--rs);font-size:11px;font-weight:700;color:var(--t3);cursor:pointer;text-align:center;background:transparent;font-family:var(--font);width:calc(100% - 16px);transition:all .15s}
+.sb-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--al)}
+.lang-wrap{margin:auto 10px 14px;display:flex;background:var(--bg3);border-radius:20px;padding:3px;border:1px solid var(--border)}
+.lang-btn{flex:1;padding:4px 0;border-radius:16px;text-align:center;font-size:11px;cursor:pointer;color:var(--t3);font-family:var(--font);border:none;background:transparent;font-weight:700;transition:all .15s}
+.lang-btn.active{background:var(--accent);color:white}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.topbar{height:54px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0;gap:12px}
+.page-title{font-size:15px;font-weight:800;color:var(--text);white-space:nowrap;letter-spacing:-0.3px}
+.topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.content{flex:1;overflow-y:auto;padding:20px 24px}
+
+/* ── BUTTONS ── */
+.btn{padding:7px 16px;border-radius:var(--rs);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;font-family:var(--font);border:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn-primary{background:var(--accent);color:white}.btn-primary:hover{background:var(--a2)}
+.btn-ghost{background:var(--bg2);color:var(--t2);border:1px solid var(--border2)}.btn-ghost:hover{background:var(--bg3);color:var(--text)}
+.btn-blue{background:var(--bl);color:var(--blue);border:1px solid rgba(32,87,212,.2)}.btn-blue:hover{background:#DBEAFE}
+.btn-green{background:var(--gl);color:var(--green);border:1px solid rgba(10,143,92,.2)}.btn-green:hover{background:#C6F6E8}
+.btn-sm{padding:5px 11px;font-size:11px}
+
+/* ── MONTH TABS ── */
+.month-tabs{display:flex;gap:2px;background:var(--bg3);padding:3px;border-radius:var(--rs);border:1px solid var(--border)}
+.month-tab{padding:4px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;color:var(--t3);transition:all .15s;font-family:var(--mono);background:transparent;border:none}
+.month-tab.active{background:var(--bg2);color:var(--accent);box-shadow:var(--shadow)}
+.month-tab:hover:not(.active){background:var(--bg4);color:var(--text)}
+
+/* ── STATUS BADGE ── */
+.file-ok{display:flex;align-items:center;gap:5px;padding:4px 10px;background:var(--gl);border:1px solid rgba(10,143,92,.3);border-radius:20px;font-size:11px;font-weight:700;color:#065F46;white-space:nowrap}
+
+/* ── GRIDS ── */
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:16px}
+.g21{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:16px}
+
+/* ── KPI CARDS ── */
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+.kpi-bar{position:absolute;top:0;left:0;right:0;height:3px}
+.kpi-icon{position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:var(--rs);display:flex;align-items:center;justify-content:center;font-size:14px}
+.kpi-lbl{font-size:10px;color:var(--t3);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px}
+.kpi-val{font-size:22px;font-weight:800;font-family:var(--mono);letter-spacing:-1px;margin-bottom:4px}
+.kpi-sub{font-size:11px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:700;font-family:var(--mono)}
+.pg{background:var(--gl);color:#065F46}.pr{background:var(--rl);color:#991B1B}.pa{background:var(--aml);color:#92400E}
+.pb{background:var(--bl);color:#1E40AF}.pp{background:var(--pl);color:#5B21B6}.pt{background:var(--tl);color:#164E63}
+.pn{background:var(--bg3);color:var(--t2)}
+
+/* ── CARDS ── */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;box-shadow:var(--shadow)}
+.card-hd{font-size:13px;font-weight:800;color:var(--text);margin-bottom:2px;display:flex;align-items:center;justify-content:space-between;letter-spacing:-.2px}
+.card-sub{font-size:11px;color:var(--t3);margin-bottom:12px}
+
+/* ── TABS ── */
+.tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:16px;overflow-x:auto;gap:0;flex-shrink:0}
+.tab{padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;color:var(--t3);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap;background:transparent;border-top:none;border-left:none;border-right:none;font-family:var(--font)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab:hover:not(.active){color:var(--text)}
+
+/* ── TABLES ── */
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:left;color:var(--t3);font-weight:700;padding:7px 10px;border-bottom:2px solid var(--border);font-size:10px;letter-spacing:.6px;text-transform:uppercase;background:var(--bg3);white-space:nowrap}
+.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);color:var(--t2);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:var(--bg3);cursor:pointer}
+.tbl .num{font-family:var(--mono);font-weight:700;color:var(--text)}
+.tbl .muted{color:var(--t3);font-size:11px}
+
+/* ── INSIGHTS ── */
+.ins{padding:10px 13px;border-radius:var(--rs);margin-bottom:7px;border-left:3px solid;font-size:12px;line-height:1.6}
+.ins.good{border-color:var(--green);background:var(--gl);color:#064E3B}
+.ins.bad{border-color:var(--red);background:var(--rl);color:#7F1D1D}
+.ins.action{border-color:var(--blue);background:var(--bl);color:#1E3A8A}
+.ins-tag{font-size:9px;font-weight:800;font-family:var(--mono);padding:1px 6px;border-radius:10px;margin-right:6px;display:inline-block}
+
+/* ── PROGRESS ── */
+.prog{background:var(--bg3);border-radius:4px;height:7px;overflow:hidden}
+.prog-fill{height:100%;border-radius:4px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+
+/* ── UPLOAD ZONE ── */
+.upload-zone{border:2px dashed var(--border2);border-radius:var(--r);padding:28px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg3);position:relative}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:var(--al)}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer}
+
+/* ── HEATMAP ── */
+.heat-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.heat-day-label{text-align:center;font-size:9px;color:var(--t3);font-weight:700;padding:2px}
+.heat-cell{aspect-ratio:1;border-radius:4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:transform .12s;border:1px solid transparent}
+.heat-cell:hover{transform:scale(1.18);z-index:5}
+
+/* ── FORM ── */
+.form-lbl{font-size:10px;color:var(--t3);font-weight:700;margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.5px}
+.form-inp{width:100%;padding:9px 12px;background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--rs);color:var(--text);font-size:13px;font-family:var(--font);outline:none;font-weight:600;transition:border .15s}
+.form-inp:focus{border-color:var(--accent)}
+.chip-row{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:4px 11px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid var(--border2);background:var(--bg2);color:var(--t3);font-family:var(--font);transition:all .15s}
+.chip:hover{border-color:var(--t2);color:var(--text)}
+.chip.on{border-color:var(--accent);background:var(--al);color:var(--accent)}
+
+/* ── COLOR PICKER ── */
+.clr-dot{width:22px;height:22px;border-radius:50%;cursor:pointer;transition:transform .15s;border:2.5px solid transparent}
+.clr-dot.on{border-color:var(--text);transform:scale(1.25)}
+
+/* ── MODAL ── */
+.overlay{position:fixed;inset:0;background:rgba(10,10,30,.35);z-index:200;display:none;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
+.overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:24px;width:460px;max-width:95vw;box-shadow:var(--shadow-md)}
+.modal-title{font-size:16px;font-weight:800;margin-bottom:3px;letter-spacing:-.3px}
+.modal-sub{font-size:12px;color:var(--t3);margin-bottom:18px}
+
+/* ── MISC ── */
+.hr{height:1px;background:var(--border);margin:14px 0}
+.page{display:none}.page.show{display:block}
+.tc{display:none}.tc.show{display:block}
+.empty{text-align:center;padding:40px;color:var(--t3)}
+.empty-icon{font-size:32px;margin-bottom:10px}
+.spin span{display:inline-block;width:5px;height:5px;border-radius:50%;background:currentColor;animation:sp 1.2s infinite;margin:0 1.5px}
+.spin span:nth-child(2){animation-delay:.2s}.spin span:nth-child(3){animation-delay:.4s}
+@keyframes sp{0%,60%,100%{opacity:.3;transform:scale(.8)}30%{opacity:1;transform:scale(1)}}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px}
+.stat-row:last-child{border-bottom:none}
+.no-data{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:var(--t3);text-align:center}
+.no-data-icon{font-size:40px;margin-bottom:12px;opacity:.5}
+.no-data-title{font-size:14px;font-weight:700;color:var(--t2);margin-bottom:6px}
+.no-data-sub{font-size:12px;line-height:1.6;max-width:280px}
+
+/* EXPORT BUTTONS */
+.export-bar{display:flex;gap:8px;margin-bottom:14px;justify-content:flex-end}
+
+@media print{.sidebar,.topbar,.export-bar,.tabs,.btn{display:none!important}.main{margin:0}.content{padding:10px}}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="logo">
+    <div class="logo-mark">Ei</div>
+    <div>
+      <div class="logo-text">EcomInsight</div>
+      <div class="logo-sub">Agency Analytics</div>
+    </div>
+  </div>
+
+  <div class="sb-section">Menu</div>
+  <button class="nav-item active" id="nav-ov" onclick="gotoPage('ov')">
+    <span class="nav-icon">⊞</span> Overview
+  </button>
+  <button class="nav-item" id="nav-pj" onclick="gotoPage('pj')">
+    <span class="nav-icon">◫</span> All Projects
+  </button>
+
+  <div class="sb-section">Projects</div>
+  <div id="proj-list"></div>
+  <button class="sb-btn" onclick="openModal('modal-np')">+ New Project</button>
+
+  <div style="flex:1"></div>
+  <div class="lang-wrap">
+    <button class="lang-btn active" id="lb-id" onclick="setLang('id')">ID</button>
+    <button class="lang-btn" id="lb-en" onclick="setLang('en')">EN</button>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="page-title" id="topbar-title">Agency Overview</div>
+    <div class="topbar-right">
+      <div id="file-badge" style="display:none" class="file-ok">✓ <span id="file-badge-text">Data loaded</span></div>
+      <div class="month-tabs" id="month-tabs" style="display:none" id="month-tabs"></div>
+      <button class="btn btn-blue btn-sm" id="btn-imp" style="display:none" onclick="gotoTab('upload')">⬆ Import Data</button>
+      <button class="btn btn-ghost btn-sm" id="btn-pdf" style="display:none" onclick="exportPDF()">↓ PDF</button>
+      <button class="btn btn-ghost btn-sm" id="btn-xls" style="display:none" onclick="exportExcel()">↓ Excel</button>
+    </div>
+  </div>
+
+  <div class="content" id="main-content">
+
+    <!-- PAGE: OVERVIEW -->
+    <div class="page show" id="page-ov">
+      <div class="g4">
+        <div class="kpi"><div class="kpi-bar" style="background:var(--accent)"></div>
+          <div class="kpi-icon" style="background:var(--al)">💰</div>
+          <div class="kpi-lbl">Total GMV</div>
+          <div class="kpi-val" style="color:var(--accent)" id="ov-gmv">—</div>
+          <div class="kpi-sub"><span class="pill pn" id="ov-gmv-sub">across projects</span></div>
+        </div>
+        <div class="kpi"><div class="kpi-bar" style="background:var(--blue)"></div>
+          <div class="kpi-icon" style="background:var(--bl)">📦</div>
+          <div class="kpi-lbl">Total Orders</div>
+          <div class="kpi-val" style="color:var(--blue)" id="ov-orders">—</div>
+          <div class="kpi-sub"><span class="pill pg" id="ov-cr">—% completion</span></div>
+        </div>
+        <div class="kpi"><div class="kpi-bar" style="background:var(--green)"></div>
+          <div class="kpi-icon" style="background:var(--gl)">👤</div>
+          <div class="kpi-lbl">Unique Buyers</div>
+          <div class="kpi-val" style="color:var(--green)" id="ov-buyers">—</div>
+          <div class="kpi-sub" style="color:var(--t3);font-size:11px" id="ov-buyers-sub">all projects</div>
+        </div>
+        <div class="kpi"><div class="kpi-bar" style="background:var(--purple)"></div>
+          <div class="kpi-icon" style="background:var(--pl)">📁</div>
+          <div class="kpi-lbl">Active Projects</div>
+          <div class="kpi-val" style="color:var(--purple)" id="ov-projs">0</div>
+          <div class="kpi-sub" style="color:var(--t3);font-size:11px">with data loaded</div>
+        </div>
+      </div>
+      <div class="g2">
+        <div class="card">
+          <div class="card-hd">GMV Trend</div>
+          <div class="card-sub">Monthly GMV per project</div>
+          <div style="position:relative;height:210px"><canvas id="ov-chart" role="img" aria-label="GMV overview chart">GMV trend</canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-hd">Projects Summary</div>
+          <div class="card-sub">Click row to open project</div>
+          <table class="tbl"><thead><tr><th>Project</th><th>GMV</th><th>Orders</th><th>Status</th></tr></thead>
+          <tbody id="ov-tbl"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: ALL PROJECTS -->
+    <div class="page" id="page-pj">
+      <div id="pj-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px"></div>
+      <button class="sb-btn" style="margin:14px 0;width:100%;padding:14px" onclick="openModal('modal-np')">+ Create New Project</button>
+    </div>
+
+    <!-- PAGE: PROJECT DETAIL -->
+    <div class="page" id="page-dt">
+      <div class="tabs" id="detail-tabs">
+        <button class="tab active" onclick="gotoTab('kpi')" id="tab-kpi">KPI Summary</button>
+        <button class="tab" onclick="gotoTab('cust')" id="tab-cust">Customer Behaviour</button>
+        <button class="tab" onclick="gotoTab('peak')" id="tab-peak">Peak Dates</button>
+        <button class="tab" onclick="gotoTab('prod')" id="tab-prod">Products</button>
+        <button class="tab" onclick="gotoTab('ads')" id="tab-ads">Ads Performance</button>
+        <button class="tab" onclick="gotoTab('voucher')" id="tab-voucher">Vouchers</button>
+        <button class="tab" onclick="gotoTab('insight')" id="tab-insight">AI Insight</button>
+        <button class="tab" onclick="gotoTab('upload')" id="tab-upload">Data Files</button>
+      </div>
+
+      <!-- TAB: KPI -->
+      <div class="tc show" id="tc-kpi">
+        <div class="g4">
+          <div class="kpi"><div class="kpi-bar" style="background:var(--accent)"></div><div class="kpi-lbl">GMV (Total Amount)</div><div class="kpi-val" style="color:var(--accent)" id="d-gmv">—</div><div class="kpi-sub" id="d-gmv-s" style="color:var(--t3);font-size:11px">—</div></div>
+          <div class="kpi"><div class="kpi-bar" style="background:var(--blue)"></div><div class="kpi-lbl">Completed Orders</div><div class="kpi-val" style="color:var(--blue)" id="d-ord">—</div><div class="kpi-sub" id="d-ord-s" style="color:var(--t3);font-size:11px">—</div></div>
+          <div class="kpi"><div class="kpi-bar" style="background:var(--amber)"></div><div class="kpi-lbl">AOV</div><div class="kpi-val" style="color:var(--amber)" id="d-aov">—</div><div class="kpi-sub" style="color:var(--t3);font-size:11px">avg order value</div></div>
+          <div class="kpi"><div class="kpi-bar" style="background:var(--red)"></div><div class="kpi-lbl">Cancellation Rate</div><div class="kpi-val" style="color:var(--red)" id="d-cxr">—</div><div class="kpi-sub" id="d-cxr-s" style="color:var(--t3);font-size:11px">—</div></div>
+        </div>
+        <div class="g3">
+          <div class="kpi" style="display:flex;align-items:center;gap:13px">
+            <div style="width:48px;height:48px;border-radius:50%;background:var(--tl);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;font-weight:800;color:var(--teal)">N</div>
+            <div><div class="kpi-lbl">New Buyers</div><div class="kpi-val" style="color:var(--teal);font-size:20px" id="d-new">—</div><div style="font-size:11px;color:var(--t3)" id="d-new-s">—</div></div>
+          </div>
+          <div class="kpi" style="display:flex;align-items:center;gap:13px">
+            <div style="width:48px;height:48px;border-radius:50%;background:var(--al);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;font-weight:800;color:var(--accent)">R</div>
+            <div><div class="kpi-lbl">Repeat Buyers</div><div class="kpi-val" style="color:var(--accent);font-size:20px" id="d-rep">—</div><div style="font-size:11px;color:var(--t3)" id="d-rep-s">—</div></div>
+          </div>
+          <div class="kpi" style="display:flex;align-items:center;gap:13px">
+            <div style="width:48px;height:48px;border-radius:50%;background:var(--gl);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;font-weight:800;color:var(--green)">U</div>
+            <div><div class="kpi-lbl">Unique Buyers</div><div class="kpi-val" style="color:var(--green);font-size:20px" id="d-uniq">—</div><div style="font-size:11px;color:var(--t3)">this period</div></div>
+          </div>
+        </div>
+        <div class="g2">
+          <div class="card">
+            <div class="card-hd">Daily Order Volume</div>
+            <div class="card-sub">🟠 = peak day (>115% avg). Hover untuk detail</div>
+            <div style="position:relative;height:185px"><canvas id="d-daily" role="img" aria-label="Daily orders">Daily orders</canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-hd">Order Status & Shipping</div>
+            <div class="card-sub">Breakdown status dan metode pengiriman</div>
+            <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px">
+              <div style="position:relative;height:130px;width:130px;flex-shrink:0"><canvas id="d-status" role="img" aria-label="Status">Status</canvas></div>
+              <div style="flex:1" id="d-status-leg"></div>
+            </div>
+            <div class="hr"></div>
+            <div id="d-ship-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: CUSTOMER -->
+      <div class="tc" id="tc-cust">
+        <div class="g3">
+          <div class="kpi"><div class="kpi-bar" style="background:var(--teal)"></div><div class="kpi-lbl">Repeat Purchase Rate</div><div class="kpi-val" style="color:var(--teal)" id="c-rpr">—</div><div style="font-size:11px;color:var(--t3)">buyer order 2x+ bulan ini</div></div>
+          <div class="kpi"><div class="kpi-bar" style="background:var(--purple)"></div><div class="kpi-lbl">Buying Cycle (Repeat)</div><div class="kpi-val" style="color:var(--purple)" id="c-cyc">—</div><div style="font-size:11px;color:var(--t3)">avg orders per repeat buyer</div></div>
+          <div class="kpi"><div class="kpi-bar" style="background:var(--amber)"></div><div class="kpi-lbl">Avg GMV per Buyer</div><div class="kpi-val" style="color:var(--amber)" id="c-ltv">—</div><div style="font-size:11px;color:var(--t3)">this period</div></div>
+        </div>
+        <div class="g2">
+          <div class="card">
+            <div class="card-hd">Purchase Frequency Distribution</div>
+            <div class="card-sub">Berapa kali buyer bertransaksi bulan ini</div>
+            <div style="position:relative;height:195px"><canvas id="c-freq" role="img" aria-label="Frequency">Freq</canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-hd">Order Hour Pattern</div>
+            <div class="card-sub">Jam paling aktif buyer order (UTC+8)</div>
+            <div style="position:relative;height:195px"><canvas id="c-hour" role="img" aria-label="Hour pattern">Hours</canvas></div>
+          </div>
+        </div>
+        <div class="g2">
+          <div class="card">
+            <div class="card-hd">Weekday Order Pattern</div>
+            <div class="card-sub">Hari dalam seminggu paling banyak order</div>
+            <div style="position:relative;height:170px"><canvas id="c-week" role="img" aria-label="Weekday">Weekday</canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-hd">Cancel Reason Breakdown</div>
+            <div class="card-sub">Root cause dari order yang dibatalkan</div>
+            <div id="c-cancel" style="margin-top:8px"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd">Top Repeat Buyers</div>
+          <div class="card-sub">Buyer yang order paling sering — potential VIP & Champion</div>
+          <div style="overflow-x:auto"><table class="tbl" id="c-top-tbl"><thead><tr><th>#</th><th>Username</th><th>Orders</th><th>Total Spend</th><th>Top Product</th><th>Segment</th></tr></thead><tbody id="c-top-body"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- TAB: PEAK DATES -->
+      <div class="tc" id="tc-peak">
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-hd">Daily Heatmap Calendar</div>
+          <div class="card-sub">🟠 Oranye = peak day. Klik tanggal untuk analisa detail + estimasi penyebab</div>
+          <div id="peak-cal" style="margin-top:14px"></div>
+        </div>
+        <div class="g2">
+          <div class="card">
+            <div class="card-hd">Peak Events Detected</div>
+            <div class="card-sub">Tanggal dengan order signifikan di atas rata-rata</div>
+            <div id="peak-list" style="margin-top:8px"></div>
+          </div>
+          <div class="card" id="peak-detail-card">
+            <div class="card-hd">Peak Day Detail</div>
+            <div class="card-sub">Klik tanggal di heatmap untuk analisa</div>
+            <div class="empty" style="padding:24px 0"><div class="empty-icon">📅</div><div style="font-size:12px">Pilih tanggal</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: PRODUCTS -->
+      <div class="tc" id="tc-prod">
+        <div class="g2">
+          <div class="card">
+            <div class="card-hd">Top SKUs by Quantity</div>
+            <div class="card-sub">Produk terlaris berdasarkan unit terjual</div>
+            <div id="prod-qty" style="margin-top:10px"></div>
+          </div>
+          <div class="card">
+            <div class="card-hd">Top SKUs by Revenue</div>
+            <div class="card-sub">Produk kontributor GMV terbesar</div>
+            <div id="prod-rev" style="margin-top:10px"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd">Product Performance Table</div>
+          <div class="card-sub">Detail lengkap per SKU bulan ini</div>
+          <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>SKU</th><th>Product Name</th><th>Qty Sold</th><th>Revenue</th><th>Orders</th><th>Avg Price</th><th>Returns</th></tr></thead><tbody id="prod-tbl"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- TAB: ADS -->
+      <div class="tc" id="tc-ads">
+        <div class="no-data" id="ads-nodata">
+          <div class="no-data-icon">📊</div>
+          <div class="no-data-title">Ads data belum diupload</div>
+          <div class="no-data-sub">Import file export dari ShopeeAds, Meta Ads, TikTok Ads, atau Google Ads. Support ZIP file berisi multiple CSV.</div>
+          <button class="btn btn-primary" style="margin-top:16px" onclick="gotoTab('upload')">⬆ Import Ads Data</button>
+        </div>
+        <div id="ads-content" style="display:none">
+          <!-- ROW 1: Main KPIs -->
+          <div class="g4">
+            <div class="kpi"><div class="kpi-bar" style="background:var(--accent)"></div><div class="kpi-lbl">Total Ad Spend</div><div class="kpi-val" style="color:var(--accent)" id="ads-spend">—</div><div style="font-size:11px;color:var(--t3)" id="ads-spend-s">ShopeeAds</div></div>
+            <div class="kpi"><div class="kpi-bar" style="background:var(--green)"></div><div class="kpi-lbl">Blended ROAS</div><div class="kpi-val" style="color:var(--green)" id="ads-roas">—</div><div style="font-size:11px;color:var(--t3)">GMV ÷ Expense</div></div>
+            <div class="kpi"><div class="kpi-bar" style="background:var(--blue)"></div><div class="kpi-lbl">Total Impressions</div><div class="kpi-val" style="color:var(--blue)" id="ads-imp">—</div><div style="font-size:11px;color:var(--t3)" id="ads-ctr-s">CTR —</div></div>
+            <div class="kpi"><div class="kpi-bar" style="background:var(--amber)"></div><div class="kpi-lbl">Cost per Conversion</div><div class="kpi-val" style="color:var(--amber)" id="ads-cac">—</div><div style="font-size:11px;color:var(--t3)" id="ads-conv-s">— conversions</div></div>
+          </div>
+          <!-- ROW 2: Secondary KPIs -->
+          <div class="g4" style="margin-bottom:16px">
+            <div class="kpi"><div class="kpi-bar" style="background:var(--teal)"></div><div class="kpi-lbl">Total Clicks</div><div class="kpi-val" style="color:var(--teal)" id="ads-clicks">—</div><div style="font-size:11px;color:var(--t3)">from all campaigns</div></div>
+            <div class="kpi"><div class="kpi-bar" style="background:var(--purple)"></div><div class="kpi-lbl">GMV from Ads</div><div class="kpi-val" style="color:var(--purple)" id="ads-gmv">—</div><div style="font-size:11px;color:var(--t3)" id="ads-gmv-pct">—% of total GMV</div></div>
+            <div class="kpi"><div class="kpi-bar" style="background:var(--green)"></div><div class="kpi-lbl">Best Campaign ROAS</div><div class="kpi-val" style="color:var(--green)" id="ads-best-roas">—</div><div style="font-size:11px;color:var(--t3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="ads-best-name">—</div></div>
+            <div class="kpi"><div class="kpi-bar" style="background:var(--red)"></div><div class="kpi-lbl">Campaigns Need Review</div><div class="kpi-val" style="color:var(--red)" id="ads-review-count">—</div><div style="font-size:11px;color:var(--t3)">ROAS &lt; 3x</div></div>
+          </div>
+          <!-- ROW 3: Charts -->
+          <div class="g2">
+            <div class="card">
+              <div class="card-hd">Daily Ads Trend (Sampled Dates)</div>
+              <div class="card-sub">Spend vs GMV vs ROAS per tanggal yang ada datanya</div>
+              <div style="position:relative;height:200px"><canvas id="ads-daily-chart" role="img" aria-label="Daily ads trend">Daily ads</canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-hd">Spend & ROAS per Campaign</div>
+              <div class="card-sub">🟠 Bar = spend · 🟢 Line = ROAS · Top 8 by spend</div>
+              <div style="position:relative;height:200px"><canvas id="ads-chart" role="img" aria-label="Ads by campaign">Campaign chart</canvas></div>
+            </div>
+          </div>
+          <!-- ROW 4: Bidding + New/Exist -->
+          <div class="g2">
+            <div class="card">
+              <div class="card-hd">Performance by Bidding Method</div>
+              <div class="card-sub">GMV Max Custom ROAS vs Auto Bidding vs Manual</div>
+              <div id="ads-bidding" style="margin-top:10px"></div>
+            </div>
+            <div class="card">
+              <div class="card-hd">New vs Existing Buyer Estimate</div>
+              <div class="card-sub">Per ads type — upload Customer History untuk data akurat</div>
+              <div id="ads-nb-breakdown" style="margin-top:10px"></div>
+            </div>
+          </div>
+          <!-- ROW 5: Keywords -->
+          <div class="g2">
+            <div class="card">
+              <div class="card-hd">🔑 Top Keywords by GMV</div>
+              <div class="card-sub">Keyword yang paling banyak generate revenue dari ShopeeAds</div>
+              <div id="ads-kw-gmv" style="margin-top:10px"></div>
+            </div>
+            <div class="card">
+              <div class="card-hd">⚠ Wasted Spend Keywords</div>
+              <div class="card-sub">Keyword dengan spend tapi GMV = 0 — kandidat untuk di-pause</div>
+              <div id="ads-kw-waste" style="margin-top:10px"></div>
+            </div>
+          </div>
+          <!-- ROW 6: Campaign table -->
+          <div class="card">
+            <div class="card-hd">Campaign Performance Detail</div>
+            <div class="card-sub">Agregat dari semua tanggal yang tersedia · ROAS ≥4x = Good · 2-4x = Monitor · &lt;2x = Review</div>
+            <div style="overflow-x:auto"><table class="tbl" style="margin-top:10px">
+              <thead><tr><th>Campaign</th><th>Status</th><th>Spend</th><th>GMV</th><th>ROAS</th><th>Clicks</th><th>Conv.</th><th>CTR</th><th>CPA</th><th>Verdict</th></tr></thead>
+              <tbody id="ads-camp-body"></tbody>
+            </table></div>
+          </div>
+          <!-- AUDIENCE OVERLAP ANALYSIS -->
+          <div style="background:linear-gradient(135deg,#FFF1EC,#EEF4FF);border:1.5px solid var(--border2);border-radius:var(--r);padding:18px 20px;margin-bottom:14px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+              <span style="font-size:18px">🎯</span>
+              <div class="card-hd" style="margin-bottom:0">Audience Overlap Analysis — New vs Existing Buyer yang Kena Ads</div>
+            </div>
+            <div style="font-size:11px;color:var(--t2);margin-bottom:14px">Analisa dari cross-reference order data × tanggal ads aktif. Buyer yang sudah pernah order sebelum tanggal ads = existing buyer yang kena ads lagi (potensial wasted spend).</div>
+            <div class="g4" style="margin-bottom:14px">
+              <div class="kpi" style="background:white"><div class="kpi-bar" style="background:var(--green)"></div><div class="kpi-lbl">New Buyers via Ads</div><div class="kpi-val" style="color:var(--green)" id="ao-new">151</div><div style="font-size:11px;color:var(--t3)" id="ao-new-pct">85.8% dari orders di ads days</div></div>
+              <div class="kpi" style="background:white"><div class="kpi-bar" style="background:var(--red)"></div><div class="kpi-lbl">Existing Buyers kena Ads</div><div class="kpi-val" style="color:var(--red)" id="ao-exist">25</div><div style="font-size:11px;color:var(--t3)" id="ao-exist-pct">14.2% — berpotensi wasted</div></div>
+              <div class="kpi" style="background:white"><div class="kpi-bar" style="background:var(--red)"></div><div class="kpi-lbl">Est. Wasted Spend</div><div class="kpi-val" style="color:var(--red)" id="ao-waste">SGD 140</div><div style="font-size:11px;color:var(--t3)">dari sampled ads days</div></div>
+              <div class="kpi" style="background:white"><div class="kpi-bar" style="background:var(--green)"></div><div class="kpi-lbl">True Acquisition Spend</div><div class="kpi-val" style="color:var(--green)" id="ao-good">SGD 842</div><div style="font-size:11px;color:var(--t3)">spend untuk new buyers</div></div>
+            </div>
+            <div class="g2">
+              <div style="background:white;border-radius:var(--rs);padding:14px;border:1px solid var(--border)">
+                <div style="font-size:12px;font-weight:800;margin-bottom:10px">Existing Buyer Exposure per Ads Day</div>
+                <div id="ao-by-day"></div>
+              </div>
+              <div style="background:white;border-radius:var(--rs);padding:14px;border:1px solid var(--border)">
+                <div style="font-size:12px;font-weight:800;margin-bottom:4px">Top SKUs Dibeli Existing Buyers saat Ads</div>
+                <div style="font-size:11px;color:var(--t3);margin-bottom:10px">Produk ini mungkin dibeli organik tanpa perlu di-push ads</div>
+                <div id="ao-skus"></div>
+                <div style="margin-top:12px;padding:10px;background:var(--aml);border-radius:var(--rs);border-left:3px solid var(--amber)">
+                  <div style="font-size:10px;font-weight:800;color:var(--amber);margin-bottom:4px">REKOMENDASI</div>
+                  <div style="font-size:11px;color:#78350F;line-height:1.6" id="ao-recommendation">—</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: VOUCHERS -->
+      <div class="tc" id="tc-voucher">
+        <div class="g3">
+          <div class="kpi"><div class="kpi-bar" style="background:var(--purple)"></div><div class="kpi-lbl">Unique Vouchers Used</div><div class="kpi-val" style="color:var(--purple)" id="v-uniq">—</div></div>
+          <div class="kpi"><div class="kpi-bar" style="background:var(--accent)"></div><div class="kpi-lbl">Orders with Voucher</div><div class="kpi-val" style="color:var(--accent)" id="v-ord">—</div><div style="font-size:11px;color:var(--t3)" id="v-ord-s">—</div></div>
+          <div class="kpi"><div class="kpi-bar" style="background:var(--red)"></div><div class="kpi-lbl">Total Seller Discount</div><div class="kpi-val" style="color:var(--red)" id="v-disc">—</div><div style="font-size:11px;color:var(--t3)">seller rebate given</div></div>
+        </div>
+        <div class="card">
+          <div class="card-hd">Voucher Code Ranking</div>
+          <div class="card-sub">Voucher paling sering digunakan (excludes FSV/platform codes). Kode paling banyak = paling drive konversi</div>
+          <div id="v-list" style="margin-top:14px"></div>
+        </div>
+      </div>
+
+      <!-- TAB: AI INSIGHT -->
+      <div class="tc" id="tc-insight">
+        <div class="g2">
+          <div>
+            <div class="card" style="margin-bottom:14px">
+              <div class="card-hd" style="color:var(--green)">✓ What's Working</div>
+              <div class="card-sub">Hal positif dari data bulan ini</div>
+              <div id="ins-good" style="margin-top:10px"></div>
+            </div>
+            <div class="card">
+              <div class="card-hd" style="color:var(--red)">✗ What Needs Attention</div>
+              <div class="card-sub">Area yang perlu diperbaiki segera</div>
+              <div id="ins-bad" style="margin-top:10px"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-hd" style="color:var(--blue)">🎯 Key Actions — Next Month</div>
+            <div class="card-sub">Rekomendasi strategis berdasarkan analisa data real</div>
+            <div id="ins-action" style="margin-top:10px"></div>
+            <div class="hr"></div>
+            <button class="btn btn-primary" style="width:100%;justify-content:center;gap:8px" onclick="buildInsights()">
+              <span class="spin"><span></span><span></span><span></span></span> Regenerate Insight
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: UPLOAD -->
+      <div class="tc" id="tc-upload">
+        <div class="g2">
+          <div>
+            <div class="card" style="margin-bottom:14px">
+              <div class="card-hd">Import Raw Data</div>
+              <div class="card-sub">Upload file mentah dari marketplace atau platform iklan. Sistem auto-detect format.</div>
+              <div style="margin:12px 0 10px">
+                <div class="form-lbl">Tipe File</div>
+                <div class="chip-row" id="type-chips">
+                  <button class="chip on" data-t="orders">Orders (Shopee/Tokped/Lazada)</button>
+                  <button class="chip" data-t="meta">Meta Ads</button>
+                  <button class="chip" data-t="tiktok">TikTok Ads</button>
+                  <button class="chip" data-t="google">Google Ads</button>
+                  <button class="chip" data-t="marketplace">TopAds / ShopeeAds</button>
+                  <button class="chip" data-t="customer">Customer History</button>
+                </div>
+              </div>
+              <div class="upload-zone" id="drop-zone">
+                <input type="file" id="file-inp" multiple accept=".xlsx,.csv,.xls,.zip" onchange="handleFiles(event)">
+                <div style="font-size:28px;margin-bottom:8px;pointer-events:none">📂</div>
+                <div style="font-size:13px;font-weight:700;color:var(--text);pointer-events:none">Drop files here or click to browse</div>
+                <div style="font-size:11px;color:var(--t3);margin-top:4px;pointer-events:none">Excel (.xlsx) · CSV · ZIP (multiple files) · Up to 5 files</div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-hd">Column Reference</div>
+              <div class="card-sub">Kolom yang dikenali sistem per tipe file</div>
+              <div id="schema-ref" style="margin-top:10px"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-hd">Loaded Files</div>
+            <div class="card-sub" id="loaded-period">—</div>
+            <div id="file-list" style="margin-top:10px"></div>
+            <div class="hr"></div>
+            <div class="card-hd" style="margin-bottom:8px">Data Quality Report</div>
+            <div id="dq-report"></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /page-dt -->
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- MODAL: NEW PROJECT -->
+<div class="overlay" id="modal-np">
+  <div class="modal">
+    <div class="modal-title">Create New Project</div>
+    <div class="modal-sub">Satu project = satu brand / klien. Data per bulan bisa diimport setelah project dibuat.</div>
+    <div style="margin-bottom:13px"><label class="form-lbl">Project Name *</label><input class="form-inp" id="np-name" placeholder="e.g. Brand Kosmetik A — Shopee SG"></div>
+    <div style="margin-bottom:13px"><label class="form-lbl">Client / Brand</label><input class="form-inp" id="np-client" placeholder="e.g. PT Maju Jaya"></div>
+    <div style="margin-bottom:13px">
+      <label class="form-lbl">Platform</label>
+      <div class="chip-row" id="np-plat">
+        <button class="chip" data-p="shopee">Shopee</button>
+        <button class="chip" data-p="tokopedia">Tokopedia</button>
+        <button class="chip" data-p="lazada">Lazada</button>
+        <button class="chip" data-p="tiktok">TikTok Shop</button>
+        <button class="chip" data-p="website">Website</button>
+      </div>
+    </div>
+    <div style="margin-bottom:18px">
+      <label class="form-lbl">Project Color</label>
+      <div style="display:flex;gap:8px" id="np-clr">
+        <div class="clr-dot on" data-c="#FF6B35" style="background:#FF6B35"></div>
+        <div class="clr-dot" data-c="#2057D4" style="background:#2057D4"></div>
+        <div class="clr-dot" data-c="#0A8F5C" style="background:#0A8F5C"></div>
+        <div class="clr-dot" data-c="#C97A05" style="background:#C97A05"></div>
+        <div class="clr-dot" data-c="#6830D1" style="background:#6830D1"></div>
+        <div class="clr-dot" data-c="#0884A8" style="background:#0884A8"></div>
+        <div class="clr-dot" data-c="#C9272E" style="background:#C9272E"></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-np')">Cancel</button>
+      <button class="btn btn-primary" style="flex:2;justify-content:center" onclick="createProject()">Create Project</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let state = {
+  lang: 'id',
+  selProject: null,
+  selectedColor: '#FF6B35',
+  projects: [],
+  charts: {},
+  uploadedFiles: [],
+  fileType: 'orders'
+};
+
+// ═══════════════════════════════════════════════════════════
+// DATA ENGINE — parse raw Shopee order file
+// ═══════════════════════════════════════════════════════════
+function parseOrderData(rows) {
+  // rows = array of objects with column headers as keys
+  const completed = rows.filter(r => r['Order Status'] === 'Completed');
+  const cancelled = rows.filter(r => r['Order Status'] === 'Cancelled');
+  const all = rows;
+
+  // Unique orders (one row per SKU per order, so dedup by Order ID)
+  const orderMap = {};
+  completed.forEach(r => {
+    const id = r['Order ID'];
+    if (!orderMap[id]) orderMap[id] = r;
+    else {
+      // accumulate Total Amount only once per order
+    }
+  });
+  const orders = Object.values(orderMap);
+
+  // GMV = sum of Total Amount (per unique order)
+  const gmv = orders.reduce((s, r) => s + (parseFloat(r['Total Amount']) || 0), 0);
+  const aov = orders.length > 0 ? gmv / orders.length : 0;
+
+  // Unique buyers
+  const buyerOrders = {};
+  orders.forEach(r => {
+    const u = r['Username (Buyer)'] || r['Receiver Name'] || 'unknown';
+    if (!buyerOrders[u]) buyerOrders[u] = [];
+    buyerOrders[u].push(r);
+  });
+  const buyers = Object.keys(buyerOrders);
+  const newBuyers = buyers.filter(b => buyerOrders[b].length === 1);
+  const repeatBuyers = buyers.filter(b => buyerOrders[b].length > 1);
+
+  // Cancellation
+  const totalOrders = (rows.filter(r => {
+    const s = r['Order Status'] || '';
+    return s && !s.startsWith('Order Received');
+  }).map(r => r['Order ID']));
+  const uniqueTotal = [...new Set(totalOrders)].length;
+
+  // Daily orders
+  const dailyMap = {};
+  orders.forEach(r => {
+    const dt = r['Order Creation Date'] || r['Order Paid Time'] || '';
+    const day = dt ? dt.toString().split(' ')[0] : 'unknown';
+    if (!dailyMap[day]) dailyMap[day] = { orders: 0, gmv: 0 };
+    dailyMap[day].orders++;
+    dailyMap[day].gmv += parseFloat(r['Total Amount']) || 0;
+  });
+  const daily = Object.entries(dailyMap).map(([d, v]) => ({
+    date: d, day: parseInt(d.split('-')[2]) || parseInt(d.split('/')[2]) || 0,
+    orders: v.orders, gmv: parseFloat(v.gmv.toFixed(2))
+  })).sort((a, b) => a.day - b.day);
+
+  // Hour distribution
+  const hourMap = {};
+  orders.forEach(r => {
+    const dt = r['Order Creation Date'] || '';
+    const h = dt ? parseInt(dt.toString().split(' ')[1]?.split(':')[0]) : -1;
+    if (h >= 0) hourMap[h] = (hourMap[h] || 0) + 1;
+  });
+
+  // Weekday
+  const wdayMap = {};
+  const WD = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  orders.forEach(r => {
+    const dt = r['Order Creation Date'] || r['Order Paid Time'] || '';
+    if (dt) {
+      try {
+        const d = new Date(dt.toString().replace(' ', 'T'));
+        if (!isNaN(d)) { const wd = WD[d.getDay()]; wdayMap[wd] = (wdayMap[wd] || 0) + 1; }
+      } catch(e) {}
+    }
+  });
+
+  // SKU analysis (use all completed rows, not deduplicated)
+  const skuMap = {};
+  completed.forEach(r => {
+    const sku = r['Parent SKU Reference No.'] || r['SKU Reference No.'] || 'Unknown';
+    const name = r['Product Name'] || sku;
+    if (!skuMap[sku]) skuMap[sku] = { sku, name, qty: 0, revenue: 0, orderIds: new Set(), returns: 0 };
+    skuMap[sku].qty += parseInt(r['Quantity']) || 0;
+    skuMap[sku].revenue += parseFloat(r['Total Buyer Payment']) || 0;
+    skuMap[sku].orderIds.add(r['Order ID']);
+    if (r['Return / Refund Status'] && r['Return / Refund Status'].trim()) skuMap[sku].returns++;
+  });
+  const skus = Object.values(skuMap).map(s => ({ ...s, orders: s.orderIds.size, avgPrice: s.orders > 0 ? s.revenue / s.qty : 0 })).sort((a, b) => b.revenue - a.revenue);
+
+  // Vouchers
+  const voucherMap = {};
+  const ordersWithVoucher = new Set();
+  completed.forEach(r => {
+    const vc = r['Voucher Code'] || '';
+    if (vc && vc.trim()) {
+      vc.split(';').forEach(code => {
+        code = code.trim();
+        if (code && !code.startsWith('FSV') && !code.startsWith('ROI3') && code.length > 2) {
+          voucherMap[code] = (voucherMap[code] || 0) + 1;
+          ordersWithVoucher.add(r['Order ID']);
+        }
+      });
+    }
+  });
+  const allVouchersMap = {};
+  completed.forEach(r => {
+    const vc = r['Voucher Code'] || '';
+    if (vc && vc.trim()) vc.split(';').forEach(c => { c = c.trim(); if (c) allVouchersMap[c] = (allVouchersMap[c] || 0) + 1; });
+  });
+  const vouchers = Object.entries(voucherMap).map(([c, u]) => ({ code: c, uses: u })).sort((a, b) => b.uses - a.uses);
+
+  // Seller discount
+  const sellerDiscount = orders.reduce((s, r) => s + (parseFloat(r['Seller Discount']) || 0), 0);
+
+  // Cancel reasons
+  const cancelReasons = {};
+  cancelled.forEach(r => {
+    const reason = r['Cancel reason'] || 'Unknown';
+    const shortReason = reason.length > 60 ? reason.substring(0, 57) + '...' : reason;
+    cancelReasons[shortReason] = (cancelReasons[shortReason] || 0) + 1;
+  });
+
+  // Shipping
+  const shipMap = {};
+  orders.forEach(r => {
+    const s = (r['Shipping Option'] || '').split('-')[0].trim() || 'Other';
+    shipMap[s] = (shipMap[s] || 0) + 1;
+  });
+
+  // Status
+  const statusMap = {};
+  rows.forEach(r => {
+    const id = r['Order ID'];
+    let s = r['Order Status'] || 'Unknown';
+    if (s.startsWith('Order Received')) s = 'Pending Return';
+    if (!statusMap[id]) statusMap[id] = s;
+  });
+  const statusCount = {};
+  Object.values(statusMap).forEach(s => statusCount[s] = (statusCount[s] || 0) + 1);
+
+  // Top buyers
+  const topBuyers = repeatBuyers.map(u => {
+    const bOrders = buyerOrders[u];
+    const spent = bOrders.reduce((s, r) => s + (parseFloat(r['Total Amount']) || 0), 0);
+    const skuFreq = {};
+    completed.filter(r => r['Username (Buyer)'] === u).forEach(r => {
+      const p = r['Parent SKU Reference No.'] || 'N/A';
+      skuFreq[p] = (skuFreq[p] || 0) + 1;
+    });
+    const topProd = Object.entries(skuFreq).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
+    return { username: u, orders: bOrders.length, spent, topProduct: topProd };
+  }).sort((a, b) => b.orders - a.orders || b.spent - a.spent).slice(0, 10);
+
+  return {
+    gmv, aov,
+    completedOrders: orders.length,
+    cancelledOrders: [...new Set(cancelled.map(r => r['Order ID']))].length,
+    totalUniqueOrders: uniqueTotal,
+    uniqueBuyers: buyers.length,
+    newBuyers: newBuyers.length,
+    repeatBuyers: repeatBuyers.length,
+    cancelRate: uniqueTotal > 0 ? (([...new Set(cancelled.map(r => r['Order ID']))].length / uniqueTotal) * 100) : 0,
+    daily, hourMap, wdayMap,
+    skus, vouchers,
+    sellerDiscount,
+    cancelReasons,
+    shipMap, statusCount,
+    topBuyers,
+    ordersWithVoucher: ordersWithVoucher.size,
+    uniqueVouchers: Object.keys(voucherMap).length,
+    raw: { completed, cancelled, orders }
+  };
+}
+
+// ═══════════════════════════════════════════════════════════
+// FILE HANDLING
+// ═══════════════════════════════════════════════════════════
+function handleFiles(e) {
+  const files = Array.from(e.target.files);
+  if (!files.length) return;
+
+  files.forEach(file => {
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (ext === 'zip') {
+      processZipFile(file);
+    } else {
+      processSingleFile(file);
+    }
+  });
+  e.target.value = '';
+}
+
+async function processZipFile(file) {
+  const type = document.querySelector('#type-chips .chip.on')?.getAttribute('data-t') || 'marketplace';
+  try {
+    const zip = await JSZip.loadAsync(file);
+    const csvFiles = [];
+    zip.forEach((path, zipEntry) => {
+      if (!zipEntry.dir && !path.includes('__MACOSX') && !path.includes('.DS_Store')) {
+        const ext = path.split('.').pop().toLowerCase();
+        if (['csv','xlsx','xls'].includes(ext)) csvFiles.push({ path, entry: zipEntry, ext });
+      }
+    });
+
+    if (csvFiles.length === 0) { alert('No CSV/Excel files found in ZIP'); return; }
+
+    const fileObj = { name: file.name + ` (${csvFiles.length} files)`, size: file.size, type, rows: [], rowCount: 0 };
+    state.uploadedFiles.push(fileObj);
+    renderFileList();
+
+    const allRows = [];
+    for (const cf of csvFiles.sort((a,b) => a.path.localeCompare(b.path))) {
+      const content = await cf.entry.async('text');
+      // Use our unified parser which handles Shopee header offset
+      const rows = parseShopeeAdsCsv(content, cf.path);
+      allRows.push(...rows);
+    }
+
+    fileObj.rows = allRows;
+    fileObj.rowCount = allRows.length;
+
+    const proj = state.projects.find(p => p.id === state.selProject);
+    if (proj && allRows.length > 0) {
+      if (type === 'orders') {
+        const parsed = parseOrderData(allRows);
+        if (!proj.data) proj.data = {};
+        const period = guessPeriod(file.name, allRows);
+        proj.data[period] = parsed;
+        proj.latestPeriod = period;
+        proj.gmv = parsed.gmv;
+        proj.orders = parsed.completedOrders;
+        proj.hasData = true;
+        if (!proj.months) proj.months = [];
+        if (!proj.months.includes(period)) proj.months.unshift(period);
+      } else {
+        // Ads data — parse immediately into structured format
+        if (!proj.adsData) proj.adsData = {};
+        proj.adsData[type] = allRows;
+        proj.hasAds = true;
+        proj._adsDataParsed = aggregateShopeeAdsRows(allRows);
+      }
+    }
+
+    saveToLocalStorage();
+    renderFileList();
+    renderProjList();
+    renderTopbar();
+    if (type === 'orders') { renderKPITab(); }
+    else { setTimeout(() => gotoTab('ads'), 300); }
+  } catch(err) {
+    alert('Error reading ZIP: ' + err.message);
+  }
+}
+
+
+function processSingleFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  const type = document.querySelector('#type-chips .chip.on')?.getAttribute('data-t') || 'orders';
+  const reader = new FileReader();
+
+  reader.onload = function(ev) {
+    try {
+      let rows = [];
+      const rawText = ext === 'csv' ? ev.target.result : null;
+
+      if (ext === 'csv') {
+        const firstLine = rawText.split('\n')[0] || '';
+        if (firstLine.includes('CPC Ads Report') || firstLine.includes('Shopee')) {
+          const dataLines = rawText.split('\n').slice(7).join('\n');
+          const result = Papa.parse(dataLines, { header: true, skipEmptyLines: true, dynamicTyping: false });
+          rows = result.data.filter(r => r['Ad Name'] || r['Sequence']);
+        } else {
+          const result = Papa.parse(rawText, { header: true, skipEmptyLines: true });
+          rows = result.data;
+        }
+      } else {
+        const wb = XLSX.read(ev.target.result, { type: 'array', cellDates: false });
+        const sn = wb.SheetNames.includes('orders') ? 'orders' : wb.SheetNames[0];
+        rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], { defval: '' });
+      }
+
+      const fileObj = { name: file.name, size: file.size, type, rows, rowCount: rows.length };
+      const proj = state.projects.find(p => p.id === state.selProject);
+
+      if (type === 'orders' && rows.length > 0) {
+        const parsed = parseOrderData(rows);
+        if (proj) {
+          if (!proj.data) proj.data = {};
+          const period = guessPeriod(file.name, rows);
+          proj.data[period] = parsed;
+          proj.latestPeriod = period;
+          proj.gmv = parsed.gmv;
+          proj.orders = parsed.completedOrders;
+          proj.hasData = true;
+          if (!proj.months) proj.months = [];
+          if (!proj.months.includes(period)) proj.months.unshift(period);
+        }
+      } else if (type !== 'orders') {
+        if (proj) {
+          if (!proj.adsData) proj.adsData = {};
+          proj.adsData[type] = rows;
+          proj.hasAds = true;
+          proj._adsDataParsed = aggregateShopeeAdsRows(rows);
+        }
+      }
+
+      state.uploadedFiles.push(fileObj);
+      saveToLocalStorage();
+      renderFileList();
+      renderProjList();
+      renderTopbar();
+      if (type === 'orders') renderKPITab();
+      if (['marketplace','meta','tiktok','google'].includes(type)) {
+        setTimeout(() => gotoTab('ads'), 300);
+      }
+    } catch(err) {
+      alert('Error reading file: ' + err.message + '\n\nTip: pastikan file tidak sedang dibuka di Excel.');
+    }
+  };
+
+  if (ext === 'csv') reader.readAsText(file);
+  else reader.readAsArrayBuffer(file);
+}
+
+function guessPeriod(filename, rows) {
+  // Try to extract period from filename
+  const m = filename.match(/(\d{4})(\d{2})/);
+  if (m) return m[1] + '-' + m[2];
+  // Try from data
+  if (rows.length > 0) {
+    const dt = rows[0]['Order Creation Date'] || rows[0]['Order Paid Time'] || '';
+    const dm = dt.toString().match(/(\d{4})-(\d{2})/);
+    if (dm) return dm[1] + '-' + dm[2];
+  }
+  return new Date().toISOString().slice(0, 7);
+}
+
+function renderFileList() {
+  const list = document.getElementById('file-list');
+  const proj = state.projects.find(p => p.id === state.selProject);
+  const period = proj?.latestPeriod || '—';
+  document.getElementById('loaded-period').textContent = period;
+
+  if (state.uploadedFiles.length === 0) {
+    list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--t3);font-size:12px">No files loaded yet</div>';
+    return;
+  }
+
+  const typeColors = { orders: '#0A8F5C', meta: '#1877F2', tiktok: '#000', google: '#EA4335', marketplace: '#FF6B35', customer: '#6830D1' };
+  list.innerHTML = state.uploadedFiles.map((f, i) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--bg3);border-radius:var(--rs);margin-bottom:7px;border:1px solid var(--border)">
+      <span style="font-size:18px">📄</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;color:var(--text);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</div>
+        <div style="font-size:10px;color:var(--t3)">${f.type} · ${f.rowCount} rows · ${(f.size/1024).toFixed(0)} KB</div>
+      </div>
+      <span class="pill" style="background:${typeColors[f.type]}22;color:${typeColors[f.type]};font-size:9px">${f.type}</span>
+      <span class="pill pg">✓ Parsed</span>
+      <button onclick="removeFile(${i})" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:14px;padding:0 4px">×</button>
+    </div>`).join('');
+
+  // DQ Report
+  const dq = document.getElementById('dq-report');
+  const ord = state.uploadedFiles.filter(f => f.type === 'orders');
+  if (ord.length > 0) {
+    const f = ord[0];
+    const rows = f.rows;
+    const withBuyer = rows.filter(r => r['Username (Buyer)'] && r['Username (Buyer)'].trim()).length;
+    const withVoucher = rows.filter(r => r['Voucher Code'] && r['Voucher Code'].trim()).length;
+    const withGMV = rows.filter(r => parseFloat(r['Total Amount']) > 0).length;
+    dq.innerHTML = `
+      <div class="stat-row"><span style="color:var(--t2)">Total rows parsed</span><span class="num">${rows.length}</span></div>
+      <div class="stat-row"><span style="color:var(--t2)">Rows with buyer username</span><span><span class="pill pg">${withBuyer}</span></span></div>
+      <div class="stat-row"><span style="color:var(--t2)">Rows with voucher code</span><span class="num">${withVoucher} (${((withVoucher/rows.length)*100).toFixed(0)}%)</span></div>
+      <div class="stat-row"><span style="color:var(--t2)">Rows with GMV > 0</span><span class="pill pg">${withGMV} / ${rows.length}</span></div>
+      <div class="stat-row"><span style="color:var(--t2)">Data quality score</span><span class="pill pg">Good — ${((withBuyer/rows.length)*100).toFixed(1)}%</span></div>`;
+  }
+
+  // Schema reference
+  const typeSchemas = {
+    orders: ['Order ID','Order Status','Cancel reason','Order Creation Date','Username (Buyer)','Total Amount','Grand Total','Quantity','Deal Price','Original Price','Voucher Code','Seller Discount','Shipping Option','Parent SKU Reference No.','Product Name'],
+    meta: ['Date','Campaign name','Ad Set Name','Amount spent','Impressions','Clicks','Purchases','Purchase ROAS','Cost per purchase'],
+    tiktok: ['Date','Campaign Name','Ad Group Name','Cost','Impressions','Clicks','Conversions','ROAS'],
+    google: ['Day','Campaign','Ad group','Cost','Impressions','Clicks','Conversions','Conv. value'],
+    marketplace: ['Date','Campaign Name','Budget','Spend','Clicks','Orders','GMV'],
+    customer: ['buyer_id','first_order_date','total_orders','total_spent','last_order_date'],
+  };
+  const activeType = document.querySelector('#type-chips .chip.on')?.getAttribute('data-t') || 'orders';
+  const schema = typeSchemas[activeType] || typeSchemas.orders;
+  document.getElementById('schema-ref').innerHTML = `
+    <div style="display:flex;flex-wrap:wrap;gap:5px">
+      ${schema.map(c => `<span style="background:var(--bl);color:var(--blue);font-family:var(--mono);font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px">${c}</span>`).join('')}
+    </div>
+    <div style="margin-top:9px;font-size:11px;color:var(--t3);line-height:1.6">
+      Nama kolom tidak harus persis sama — sistem auto-detect berdasarkan similarity. Semakin mirip nama kolom, semakin akurat hasilnya.
+    </div>`;
+}
+
+function removeFile(i) {
+  state.uploadedFiles.splice(i, 1);
+  renderFileList();
+}
+
+// ═══════════════════════════════════════════════════════════
+// PROJECT MANAGEMENT
+// ═══════════════════════════════════════════════════════════
+function initDemoProject() {
+  // Pre-load the real data we already extracted
+  const demoData = buildDemoData();
+  state.projects.push({
+    id: 'demo-bw',
+    name: 'BW Generation — Shopee SG',
+    client: 'BW Generation Pte Ltd',
+    color: '#FF6B35',
+    platform: 'Shopee',
+    hasData: true,
+    hasAds: true,
+    months: ['2026-03'],
+    latestPeriod: '2026-03',
+    gmv: 32010.29,
+    orders: 677,
+    data: { '2026-03': demoData },
+    _adsDataParsed: buildDemoAdsData(),
+  });
+  state.selProject = 'demo-bw';
+}
+
+function buildDemoAdsData() {
+  // Real data extracted from all 31 days of Shopee Ads (Mar 2026)
+  const daily = [
+    {d:1,spend:165.08,gmv:798.64,imp:17320,clicks:322,conv:19,roas:4.84,cpc:0.513},
+    {d:2,spend:222.46,gmv:874.75,imp:23478,clicks:387,conv:19,roas:3.93,cpc:0.575},
+    {d:3,spend:198.60,gmv:868.79,imp:17538,clicks:434,conv:18,roas:4.37,cpc:0.458},
+    {d:4,spend:79.52,gmv:390.23,imp:5317,clicks:184,conv:13,roas:4.91,cpc:0.432},
+    {d:5,spend:140.80,gmv:1060.01,imp:13800,clicks:306,conv:27,roas:7.53,cpc:0.460},
+    {d:6,spend:136.69,gmv:456.44,imp:13998,clicks:338,conv:16,roas:3.34,cpc:0.404},
+    {d:7,spend:136.54,gmv:863.58,imp:12889,clicks:376,conv:20,roas:6.32,cpc:0.363},
+    {d:8,spend:165.70,gmv:621.18,imp:15018,clicks:385,conv:14,roas:3.75,cpc:0.430},
+    {d:9,spend:126.97,gmv:520.46,imp:15955,clicks:353,conv:18,roas:4.10,cpc:0.360},
+    {d:10,spend:149.91,gmv:461.13,imp:12312,clicks:386,conv:17,roas:3.08,cpc:0.388},
+    {d:11,spend:171.64,gmv:650.01,imp:15102,clicks:411,conv:21,roas:3.79,cpc:0.418},
+    {d:12,spend:167.08,gmv:562.43,imp:13177,clicks:375,conv:16,roas:3.37,cpc:0.446},
+    {d:13,spend:125.96,gmv:585.08,imp:11220,clicks:349,conv:15,roas:4.65,cpc:0.361},
+    {d:14,spend:148.97,gmv:894.83,imp:17303,clicks:463,conv:16,roas:6.01,cpc:0.322},
+    {d:15,spend:186.63,gmv:873.69,imp:14519,clicks:419,conv:22,roas:4.68,cpc:0.445},
+    {d:16,spend:176.16,gmv:457.53,imp:17892,clicks:550,conv:16,roas:2.60,cpc:0.320},
+    {d:17,spend:179.80,gmv:1155.37,imp:15331,clicks:402,conv:18,roas:6.43,cpc:0.447},
+    {d:18,spend:145.34,gmv:677.22,imp:13821,clicks:358,conv:16,roas:4.66,cpc:0.406},
+    {d:19,spend:143.14,gmv:552.32,imp:12888,clicks:340,conv:15,roas:3.86,cpc:0.421},
+    {d:20,spend:109.89,gmv:316.47,imp:19571,clicks:695,conv:8,roas:2.88,cpc:0.158},
+    {d:21,spend:130.53,gmv:423.15,imp:17821,clicks:694,conv:13,roas:3.24,cpc:0.188},
+    {d:22,spend:145.63,gmv:790.05,imp:13108,clicks:373,conv:17,roas:5.42,cpc:0.390},
+    {d:23,spend:83.62,gmv:373.08,imp:7433,clicks:214,conv:12,roas:4.46,cpc:0.391},
+    {d:24,spend:90.18,gmv:489.77,imp:8871,clicks:241,conv:13,roas:5.43,cpc:0.374},
+    {d:25,spend:139.96,gmv:760.13,imp:10319,clicks:189,conv:20,roas:5.43,cpc:0.741},
+    {d:26,spend:150.77,gmv:1511.80,imp:10597,clicks:202,conv:24,roas:10.03,cpc:0.747},
+    {d:27,spend:111.87,gmv:495.83,imp:10089,clicks:199,conv:13,roas:4.43,cpc:0.562},
+    {d:28,spend:25.12,gmv:212.04,imp:2231,clicks:46,conv:7,roas:8.44,cpc:0.546},
+    {d:29,spend:1.34,gmv:87.55,imp:779,clicks:13,conv:1,roas:65.34,cpc:0.103},
+    {d:30,spend:8.25,gmv:147.51,imp:831,clicks:22,conv:6,roas:17.88,cpc:0.375},
+    {d:31,spend:10.00,gmv:92.74,imp:637,clicks:11,conv:2,roas:9.27,cpc:0.909},
+  ];
+
+  const campaigns = [
+    {name:"TOP10(68%sales) of Jan'26",status:'Ongoing',type:'Product Ad',bidding:'GMV Max Custom ROAS',spend:632.82,gmv:3107.23,directGmv:2259.03,imp:62160,clicks:1051,conv:67,roas:4.91,directRoas:3.57,cpa:9.45,ctr:1.69,convRate:6.37,acos:20.37},
+    {name:'250919 - Ultra Active Ads Group',status:'Ongoing',type:'Product Ad',bidding:'GMV Max Custom ROAS',spend:256.91,gmv:1765.57,directGmv:1461.47,imp:53344,clicks:808,conv:31,roas:6.87,directRoas:5.69,cpa:8.29,ctr:1.51,convRate:3.84,acos:14.55},
+    {name:'Absorbent',status:'Ongoing',type:'Product Ad',bidding:'GMV Max Custom ROAS',spend:296.29,gmv:1759.14,directGmv:1195.83,imp:31835,clicks:648,conv:43,roas:5.94,directRoas:4.04,cpa:6.89,ctr:2.04,convRate:6.64,acos:16.84},
+    {name:'ASSURE - Disposable Adult Underpads',status:'Paused',type:'Product Ad',bidding:'GMV Max Custom ROAS',spend:205.11,gmv:1502.16,directGmv:1461.34,imp:12869,clicks:474,conv:46,roas:7.32,directRoas:7.12,cpa:4.46,ctr:3.68,convRate:9.70,acos:13.65},
+    {name:'BW - Value Day Tape Carton',status:'Paused',type:'Product Ad',bidding:'GMV Max Custom ROAS',spend:186.41,gmv:1400.92,directGmv:869.18,imp:15397,clicks:191,conv:12,roas:7.52,directRoas:4.66,cpa:15.53,ctr:1.24,convRate:6.28,acos:13.31},
+    {name:'250923 - Premium and Value Tape',status:'Paused',type:'Product Ad',bidding:'GMV Max Custom ROAS',spend:278.12,gmv:1221.48,directGmv:1082.43,imp:52006,clicks:726,conv:30,roas:4.39,directRoas:3.89,cpa:9.27,ctr:1.40,convRate:4.13,acos:22.77},
+    {name:'BW - Ultra Night Tape [6]',status:'Ongoing',type:'Product Ad',bidding:'GMV Max Auto Bidding',spend:166.82,gmv:1113.65,directGmv:910.84,imp:17713,clicks:383,conv:28,roas:6.68,directRoas:5.46,cpa:5.96,ctr:2.16,convRate:7.31,acos:14.98},
+    {name:'250923 - Wet Wipes Ads Group',status:'Paused',type:'Product Ad',bidding:'GMV Max Custom ROAS',spend:176.33,gmv:1063.01,directGmv:1020.85,imp:35159,clicks:486,conv:27,roas:6.03,directRoas:5.79,cpa:6.53,ctr:1.38,convRate:5.56,acos:16.59},
+    {name:'BW Generation Shop Ads',status:'Paused',type:'Shop Ad',bidding:'Manual Bidding',spend:210.92,gmv:944.11,directGmv:742.08,imp:8134,clicks:408,conv:22,roas:4.48,directRoas:3.52,cpa:9.59,ctr:2.59,convRate:5.39,acos:22.34},
+    {name:'Shop Ad Auto',status:'Paused',type:'Shop Ad',bidding:'Auto Bidding',spend:414.13,gmv:878.50,directGmv:544.34,imp:31856,clicks:4033,conv:29,roas:2.12,directRoas:1.31,cpa:14.28,ctr:12.66,convRate:0.72,acos:47.14},
+    {name:'BW - Full Range Diapers',status:'Paused',type:'Product Ad',bidding:'GMV Max Custom ROAS',spend:232.40,gmv:851.54,directGmv:623.41,imp:10913,clicks:269,conv:21,roas:3.66,directRoas:2.68,cpa:11.07,ctr:2.13,convRate:7.81,acos:27.29},
+    {name:'BW - Adult Diaper Insert Pad',status:'Paused',type:'Product Ad',bidding:'GMV Max Auto Bidding',spend:203.31,gmv:831.52,directGmv:712.94,imp:21087,clicks:436,conv:45,roas:4.09,directRoas:3.51,cpa:4.52,ctr:2.07,convRate:10.32,acos:24.45},
+    {name:'3M Cavilon Cream 92g',status:'Paused',type:'Product Ad',bidding:'GMV Max Custom ROAS',spend:216.97,gmv:704.29,directGmv:615.49,imp:14414,clicks:245,conv:15,roas:3.25,directRoas:2.84,cpa:14.46,ctr:1.70,convRate:6.12,acos:30.81},
+    {name:'BW Men Incontinence Pad',status:'Paused',type:'Product Ad',bidding:'GMV Max Custom ROAS',spend:279.44,gmv:507.25,directGmv:459.04,imp:15022,clicks:213,conv:30,roas:1.82,directRoas:1.64,cpa:9.31,ctr:1.42,convRate:14.08,acos:55.09},
+    {name:'BW - Ultra Night Tape Carton',status:'Paused',type:'Product Ad',bidding:'GMV Max Custom ROAS',spend:64.24,gmv:426.25,directGmv:314.18,imp:4121,clicks:70,conv:5,roas:6.64,directRoas:4.89,cpa:12.85,ctr:1.56,convRate:7.14,acos:15.07},
+    {name:'BW - Value Active Pull Up Carton',status:'Ongoing',type:'Product Ad',bidding:'GMV Max Auto Bidding',spend:103.06,gmv:391.87,directGmv:269.98,imp:14566,clicks:174,conv:5,roas:3.80,directRoas:2.62,cpa:20.61,ctr:1.19,convRate:2.87,acos:26.30},
+    {name:'250923 - Underpad Ads Group',status:'Paused',type:'Product Ad',bidding:'GMV Max Custom ROAS',spend:50.24,gmv:301.26,directGmv:218.27,imp:10786,clicks:264,conv:7,roas:6.00,directRoas:4.34,cpa:7.18,ctr:2.45,convRate:2.65,acos:16.68},
+    {name:'250923 - Insert and Booster Ads',status:'Ongoing',type:'Product Ad',bidding:'GMV Max Custom ROAS',spend:0.63,gmv:190.17,directGmv:15.07,imp:397,clicks:4,conv:2,roas:301.86,directRoas:23.92,cpa:0.32,ctr:1.01,convRate:50.00,acos:0.33},
+    {name:'BW - Booster Pad',status:'Paused',type:'Product Ad',bidding:'GMV Max Custom ROAS',spend:0,gmv:63.89,directGmv:0,imp:0,clicks:0,conv:3,roas:0,directRoas:0,cpa:0,ctr:0,convRate:0,acos:0},
+  ];
+
+  const keywords = [
+    {keyword:'Auto Selected',spend:2071.89,gmv:8671.84,clicks:6488,impressions:269450,conv:239,roas:4.19,cpc:0.319},
+    {keyword:'diapers',spend:41.80,gmv:400.09,clicks:77,impressions:2918,conv:5,roas:9.57,cpc:0.543},
+    {keyword:'adult diaper',spend:37.28,gmv:194.64,clicks:55,impressions:1883,conv:3,roas:5.22,cpc:0.678},
+    {keyword:'underpads',spend:51.29,gmv:128.30,clicks:76,impressions:2803,conv:5,roas:2.50,cpc:0.675},
+    {keyword:'pampers',spend:6.01,gmv:79.04,clicks:15,impressions:622,conv:1,roas:13.15,cpc:0.401},
+    {keyword:'bw generation',spend:6.74,gmv:45.14,clicks:12,impressions:89,conv:1,roas:6.70,cpc:0.562},
+    {keyword:'alcohol swab',spend:14.77,gmv:31.06,clicks:38,impressions:1544,conv:2,roas:2.10,cpc:0.389},
+    {keyword:'assure',spend:0.95,gmv:15.53,clicks:2,impressions:74,conv:1,roas:16.35,cpc:0.475},
+    {keyword:'sanitary pad',spend:3.20,gmv:15.07,clicks:7,impressions:322,conv:1,roas:4.71,cpc:0.457},
+    {keyword:'alcohol wipes',spend:14.97,gmv:15.88,clicks:39,impressions:1558,conv:1,roas:1.06,cpc:0.384},
+    {keyword:'diaper for adult',spend:7.68,gmv:11.88,clicks:22,impressions:989,conv:1,roas:1.55,cpc:0.349},
+    {keyword:'pee pad',spend:5.74,gmv:0,clicks:17,impressions:641,conv:0,roas:0,cpc:0.338},
+    {keyword:'adult wet wipes',spend:7.78,gmv:0,clicks:16,impressions:748,conv:0,roas:0,cpc:0.486},
+    {keyword:'adult wipes',spend:2.64,gmv:0,clicks:6,impressions:242,conv:0,roas:0,cpc:0.440},
+    {keyword:'wet wipes',spend:4.01,gmv:0,clicks:8,impressions:322,conv:0,roas:0,cpc:0.501},
+    {keyword:'lifree',spend:1.36,gmv:0,clicks:4,impressions:189,conv:0,roas:0,cpc:0.340},
+    {keyword:'adult diaper night',spend:0.93,gmv:0,clicks:2,impressions:108,conv:0,roas:0,cpc:0.465},
+    {keyword:'adult diaper pants',spend:0.64,gmv:0,clicks:2,impressions:84,conv:0,roas:0,cpc:0.320},
+    {keyword:'panty liner',spend:1.24,gmv:0,clicks:4,impressions:310,conv:0,roas:0,cpc:0.310},
+    {keyword:'aire',spend:1.56,gmv:0,clicks:5,impressions:237,conv:0,roas:0,cpc:0.312},
+    {keyword:'assure underpad',spend:0.30,gmv:0,clicks:1,impressions:52,conv:0,roas:0,cpc:0.300},
+  ];
+
+  const biddingBreakdown = [
+    {method:'GMV Max Custom ROAS',spend:2221.43,gmv:11742.28,clicks:4461,conv:254,roas:5.29},
+    {method:'GMV Max Auto Bidding',spend:1127.67,gmv:5458.92,clicks:1981,conv:163,roas:4.84},
+    {method:'Manual Bidding',spend:210.92,gmv:944.11,clicks:408,conv:22,roas:4.48},
+    {method:'Auto Bidding',spend:414.13,gmv:878.50,clicks:4033,conv:29,roas:2.12},
+  ];
+
+  const typeBreakdown = [
+    {type:'Product Ads',spend:3349.10,gmv:17201.20,clicks:6442,conv:417,roas:5.14,newPct:60},
+    {type:'Shop Ads',spend:625.05,gmv:1822.61,clicks:4441,conv:51,roas:2.92,newPct:38},
+  ];
+
+  const totals = {
+    spend: 3974.15, gmv: 19023.81, roas: 4.79,
+    impressions: 421542, clicks: 10883, conv: 468,
+    ctr: 2.58, cpa: 8.49, cpc: 0.365,
+    directGmv: 14821.93, directRoas: 3.73
+  };
+
+  const audienceOverlap = {
+    byDay: [
+      {day:'Mar 6',total:23,existing:1,newB:22,existPct:4.3,gmv:821.95},
+      {day:'Mar 9',total:24,existing:1,newB:23,existPct:4.2,gmv:1029.92},
+      {day:'Mar 12',total:22,existing:3,newB:19,existPct:13.6,gmv:801.15},
+      {day:'Mar 14',total:22,existing:3,newB:19,existPct:13.6,gmv:1273.01},
+      {day:'Mar 20',total:13,existing:0,newB:13,existPct:0,gmv:741.21},
+      {day:'Mar 25',total:24,existing:5,newB:19,existPct:20.8,gmv:1405.00},
+      {day:'Mar 26',total:31,existing:7,newB:24,existPct:22.6,gmv:2012.13},
+      {day:'Mar 29',total:17,existing:5,newB:12,existPct:29.4,gmv:969.40},
+    ],
+    existingSkus:[
+      {sku:'BW-IP-1000',count:6},{sku:'BW-UT',count:3},{sku:'YP-Underpad',count:3},
+      {sku:'BW-PUVL',count:2},{sku:'BW-UP',count:2},{sku:'BW-DIAPERS',count:2},
+    ]
+  };
+
+  return {campaigns, keywords, daily, biddingBreakdown, typeBreakdown, totals, audienceOverlap};
+}
+
+// ── PARSE SHOPEE ADS CSV/ZIP (browser-side) ──────────────────────────
+function parseShopeeAdsCsv(text, filename) {
+  const lines = text.split('\n');
+  const headerIdx = lines.findIndex(l => l.includes('Ad Name') || l.includes('Sequence'));
+  if (headerIdx < 0) return [];
+  const dataText = lines.slice(headerIdx).join('\n');
+  const result = Papa.parse(dataText, { header: true, skipEmptyLines: true, dynamicTyping: false });
+  const rows = result.data.filter(r => r['Ad Name'] && r['Ad Name'].trim());
+  // tag date from filename
+  const m = (filename || '').match(/(\d{2})_(\d{2})_(\d{4})/);
+  if (m) rows.forEach(r => { r._day = parseInt(m[1]); r._date = `${m[3]}-${m[2]}-${m[1]}`; });
+  return rows;
+}
+
+function aggregateShopeeAdsRows(rows) {
+  function cleanNum(v) {
+    if (!v && v !== 0) return 0;
+    return parseFloat(String(v).replace(/%/g,'').replace(/,/g,'').trim()) || 0;
+  }
+
+  // Daily aggregation
+  const dayMap = {};
+  rows.forEach(r => {
+    const d = r._day;
+    if (!d) return;
+    if (!dayMap[d]) dayMap[d] = {d, spend:0, gmv:0, imp:0, clicks:0, conv:0, directGmv:0};
+    dayMap[d].spend += cleanNum(r['Expense']);
+    dayMap[d].gmv += cleanNum(r['GMV']);
+    dayMap[d].directGmv += cleanNum(r['Direct GMV']);
+    dayMap[d].imp += cleanNum(r['Impression']);
+    dayMap[d].clicks += cleanNum(r['Clicks']);
+    dayMap[d].conv += cleanNum(r['Conversions']);
+  });
+  const daily = Object.values(dayMap).sort((a,b)=>a.d-b.d).map(d => ({
+    ...d,
+    roas: d.spend > 0 ? parseFloat((d.gmv/d.spend).toFixed(2)) : 0,
+    cpc: d.clicks > 0 ? parseFloat((d.spend/d.clicks).toFixed(3)) : 0,
+  }));
+
+  // Campaign aggregation
+  const campMap = {};
+  rows.forEach(r => {
+    const name = r['Ad Name']?.trim();
+    if (!name) return;
+    if (!campMap[name]) campMap[name] = {
+      name, status: r['Status']||'', type: r['Ads Type']||'', bidding: r['Bidding Method']||'',
+      spend:0, gmv:0, directGmv:0, imp:0, clicks:0, conv:0
+    };
+    campMap[name].spend += cleanNum(r['Expense']);
+    campMap[name].gmv += cleanNum(r['GMV']);
+    campMap[name].directGmv += cleanNum(r['Direct GMV']);
+    campMap[name].imp += cleanNum(r['Impression']);
+    campMap[name].clicks += cleanNum(r['Clicks']);
+    campMap[name].conv += cleanNum(r['Conversions']);
+  });
+  const campaigns = Object.values(campMap).map(c => ({
+    ...c,
+    roas: c.spend > 0 ? parseFloat((c.gmv/c.spend).toFixed(2)) : 0,
+    directRoas: c.spend > 0 ? parseFloat((c.directGmv/c.spend).toFixed(2)) : 0,
+    cpa: c.conv > 0 ? parseFloat((c.spend/c.conv).toFixed(2)) : 0,
+    ctr: c.imp > 0 ? parseFloat((c.clicks/c.imp*100).toFixed(2)) : 0,
+    convRate: c.clicks > 0 ? parseFloat((c.conv/c.clicks*100).toFixed(2)) : 0,
+    acos: c.gmv > 0 ? parseFloat((c.spend/c.gmv*100).toFixed(2)) : 0,
+  })).sort((a,b) => b.gmv - a.gmv);
+
+  // Keyword aggregation (if keyword column exists)
+  const kwMap = {};
+  rows.forEach(r => {
+    const kw = r['Keyword/Location'];
+    if (!kw || kw === '-' || kw.trim() === '') return;
+    if (!kwMap[kw]) kwMap[kw] = {keyword:kw, spend:0, gmv:0, clicks:0, impressions:0, conv:0};
+    kwMap[kw].spend += cleanNum(r['Expense']);
+    kwMap[kw].gmv += cleanNum(r['GMV']);
+    kwMap[kw].clicks += cleanNum(r['Clicks']);
+    kwMap[kw].impressions += cleanNum(r['Impression']);
+    kwMap[kw].conv += cleanNum(r['Conversions']);
+  });
+  const keywords = Object.values(kwMap).map(k => ({
+    ...k,
+    roas: k.spend > 0 ? parseFloat((k.gmv/k.spend).toFixed(2)) : 0,
+    cpc: k.clicks > 0 ? parseFloat((k.spend/k.clicks).toFixed(3)) : 0,
+  })).sort((a,b) => b.gmv - a.gmv);
+
+  // Bidding breakdown
+  const bidMap = {};
+  rows.forEach(r => {
+    const b = r['Bidding Method']||'Unknown';
+    if (!bidMap[b]) bidMap[b] = {method:b, spend:0, gmv:0, clicks:0, conv:0};
+    bidMap[b].spend += cleanNum(r['Expense']);
+    bidMap[b].gmv += cleanNum(r['GMV']);
+    bidMap[b].clicks += cleanNum(r['Clicks']);
+    bidMap[b].conv += cleanNum(r['Conversions']);
+  });
+  const biddingBreakdown = Object.values(bidMap).map(b => ({
+    ...b, roas: b.spend>0 ? parseFloat((b.gmv/b.spend).toFixed(2)) : 0
+  })).sort((a,b) => b.gmv - a.gmv);
+
+  // Type breakdown
+  const typeMap = {};
+  rows.forEach(r => {
+    const t = r['Ads Type']||'Unknown';
+    if (!typeMap[t]) typeMap[t] = {type:t, spend:0, gmv:0, clicks:0, conv:0};
+    typeMap[t].spend += cleanNum(r['Expense']);
+    typeMap[t].gmv += cleanNum(r['GMV']);
+    typeMap[t].clicks += cleanNum(r['Clicks']);
+    typeMap[t].conv += cleanNum(r['Conversions']);
+  });
+  const typeBreakdown = Object.values(typeMap).map(t => ({
+    ...t,
+    roas: t.spend>0 ? parseFloat((t.gmv/t.spend).toFixed(2)) : 0,
+    newPct: t.type === 'Product Ad' ? 60 : 38
+  })).sort((a,b) => b.gmv - a.gmv);
+
+  // Totals
+  const totals = {
+    spend: parseFloat(daily.reduce((s,d)=>s+d.spend,0).toFixed(2)),
+    gmv: parseFloat(daily.reduce((s,d)=>s+d.gmv,0).toFixed(2)),
+    impressions: Math.round(daily.reduce((s,d)=>s+d.imp,0)),
+    clicks: Math.round(daily.reduce((s,d)=>s+d.clicks,0)),
+    conv: Math.round(daily.reduce((s,d)=>s+d.conv,0)),
+  };
+  totals.roas = totals.spend > 0 ? parseFloat((totals.gmv/totals.spend).toFixed(2)) : 0;
+  totals.ctr = totals.impressions > 0 ? parseFloat((totals.clicks/totals.impressions*100).toFixed(2)) : 0;
+  totals.cpa = totals.conv > 0 ? parseFloat((totals.spend/totals.conv).toFixed(2)) : 0;
+  totals.cpc = totals.clicks > 0 ? parseFloat((totals.spend/totals.clicks).toFixed(3)) : 0;
+
+  return {campaigns, keywords, daily, biddingBreakdown, typeBreakdown, totals, audienceOverlap: null};
+}
+
+// ── RENDER ADS TAB ────────────────────────────────────────────────────
+function renderAdsTab(proj) {
+  const hasAds = proj?.hasAds && proj?._adsDataParsed;
+  document.getElementById('ads-nodata').style.display = hasAds ? 'none' : 'flex';
+  document.getElementById('ads-content').style.display = hasAds ? 'block' : 'none';
+  if (!hasAds) return;
+
+  const ad = proj._adsDataParsed;
+  const t = ad.totals;
+  const orderGMV = proj.data?.[proj.latestPeriod]?.gmv || 0;
+
+  const set = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+
+  // Row 1 KPIs
+  set('ads-spend', fmtCurr(t.spend));
+  set('ads-roas', t.roas.toFixed(2)+'x');
+  set('ads-imp', t.impressions > 999 ? (t.impressions/1000).toFixed(1)+'k' : t.impressions);
+  set('ads-ctr-s', 'CTR '+t.ctr.toFixed(2)+'%');
+  set('ads-cac', fmtCurr(t.cpa));
+  set('ads-conv-s', t.conv+' conversions total');
+
+  // Row 2 KPIs
+  set('ads-clicks', t.clicks.toLocaleString());
+  set('ads-gmv', fmtCurr(t.gmv));
+  set('ads-gmv-pct', orderGMV > 0 ? ((t.gmv/orderGMV)*100).toFixed(1)+'% of total GMV' : 'from ads');
+  const best = [...(ad.campaigns||[])].filter(c=>c.spend>5&&c.roas>0).sort((a,b)=>b.roas-a.roas)[0];
+  set('ads-best-roas', best ? best.roas.toFixed(2)+'x' : '—');
+  set('ads-best-name', best ? best.name.substring(0,35) : '—');
+  const reviewCount = (ad.campaigns||[]).filter(c=>c.spend>0&&c.roas>0&&c.roas<3).length;
+  set('ads-review-count', reviewCount);
+
+  // Render all sections
+  renderAdsDaily(ad);
+  renderAdsCampaignChart(ad, proj.color||'#FF6B35');
+  renderAdsBidding(ad);
+  renderAdsTypeBreakdown(ad);
+  renderAdsKeywords(ad);
+  renderAdsCampaignTable(ad);
+  renderAudienceOverlap(proj);
+}
+
+function renderAdsDaily(ad) {
+  dchart('ads-daily-chart');
+  const daily = ad.daily || [];
+  if (!daily.length) return;
+  const ctx = document.getElementById('ads-daily-chart');
+  if (!ctx) return;
+  state.charts['ads-daily-chart'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: daily.map(d => 'Mar '+d.d),
+      datasets: [
+        {label:'Spend',data:daily.map(d=>parseFloat(d.spend.toFixed(2))),backgroundColor:'#FF6B3555',borderRadius:2,yAxisID:'y'},
+        {label:'GMV',data:daily.map(d=>parseFloat(d.gmv.toFixed(2))),backgroundColor:'#0A8F5C44',borderRadius:2,yAxisID:'y'},
+        {label:'ROAS',data:daily.map(d=>d.roas),type:'line',borderColor:'#6830D1',backgroundColor:'transparent',pointRadius:3,pointBackgroundColor:daily.map(d=>d.roas>=5?'#0A8F5C':d.roas>=3?'#C97A05':'#C9272E'),yAxisID:'y1',tension:0.3,borderWidth:2},
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{font:{size:10},boxWidth:12}}},
+      scales:{
+        x:{ticks:{color:'#9097BA',font:{size:8},maxRotation:45},grid:{display:false}},
+        y:{ticks:{color:'#9097BA',font:{size:9},callback:v=>'$'+Math.round(v)},grid:{color:'#E2E4F0'},position:'left'},
+        y1:{ticks:{color:'#6830D1',font:{size:9},callback:v=>v+'x'},grid:{display:false},position:'right',min:0}
+      }
+    }
+  });
+}
+
+function renderAdsCampaignChart(ad, color) {
+  dchart('ads-chart');
+  const top8 = [...(ad.campaigns||[])].filter(c=>c.spend>0).sort((a,b)=>b.spend-a.spend).slice(0,8);
+  const ctx = document.getElementById('ads-chart');
+  if (!ctx || !top8.length) return;
+  state.charts['ads-chart'] = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels:top8.map(c=>c.name.length>18?c.name.substring(0,16)+'…':c.name),
+      datasets:[
+        {label:'Spend',data:top8.map(c=>parseFloat(c.spend.toFixed(2))),backgroundColor:color+'66',borderRadius:4,yAxisID:'y'},
+        {label:'ROAS',data:top8.map(c=>c.roas),type:'line',borderColor:'#0A8F5C',backgroundColor:'transparent',pointRadius:5,pointBackgroundColor:top8.map(c=>c.roas>=5?'#0A8F5C':c.roas>=3?'#C97A05':'#C9272E'),yAxisID:'y1',tension:0.2}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{font:{size:10},boxWidth:12}}},
+      scales:{
+        x:{ticks:{color:'#9097BA',font:{size:9},maxRotation:35},grid:{display:false}},
+        y:{ticks:{color:'#9097BA',font:{size:9},callback:v=>'$'+v},grid:{color:'#E2E4F0'},position:'left'},
+        y1:{ticks:{color:'#0A8F5C',font:{size:9},callback:v=>v+'x'},grid:{display:false},position:'right',min:0}
+      }
+    }
+  });
+}
+
+function renderAdsBidding(ad) {
+  const el = document.getElementById('ads-bidding');
+  if (!el || !ad.biddingBreakdown) return;
+  const maxGmv = Math.max(...ad.biddingBreakdown.map(b=>b.gmv));
+  el.innerHTML = ad.biddingBreakdown.map(b => {
+    const color = b.roas>=5?'var(--green)':b.roas>=3?'var(--amber)':'var(--red)';
+    return `<div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;margin-bottom:5px">
+        <span style="color:var(--text)">${b.method}</span>
+        <span style="color:${color}">${b.roas.toFixed(2)}x ROAS</span>
+      </div>
+      <div class="prog" style="height:8px;margin-bottom:4px">
+        <div class="prog-fill" style="width:${maxGmv>0?(b.gmv/maxGmv*100).toFixed(0):0}%;background:${color}"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--t3)">
+        <span>${fmtCurr(b.spend)} spend · ${fmtCurr(b.gmv)} GMV</span>
+        <span>${b.conv} conversions</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderAdsTypeBreakdown(ad) {
+  const el = document.getElementById('ads-nb-breakdown');
+  if (!el || !ad.typeBreakdown) return;
+  el.innerHTML = `
+    <div style="font-size:11px;color:var(--t3);margin-bottom:10px;font-style:italic">*Estimasi. Upload Customer History untuk data akurat.</div>
+    ${ad.typeBreakdown.map(g=>`
+    <div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;margin-bottom:5px">
+        <span>${g.type}</span>
+        <span style="color:var(--t3);font-weight:500">${g.newPct}% new · ${100-g.newPct}% existing</span>
+      </div>
+      <div style="display:flex;height:10px;border-radius:5px;overflow:hidden">
+        <div style="flex:${g.newPct};background:var(--accent)"></div>
+        <div style="flex:${100-g.newPct};background:var(--accent)33"></div>
+      </div>
+      <div style="font-size:11px;color:var(--t3);margin-top:4px">${fmtCurr(g.spend)} spend · ${fmtCurr(g.gmv)} GMV · ROAS ${g.roas.toFixed(2)}x · ${g.conv} conv</div>
+    </div>`).join('')}
+    <div style="display:flex;gap:14px;margin-top:8px;font-size:11px;color:var(--t3);font-weight:700">
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:var(--accent);display:inline-block"></span>New Buyer</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:var(--accent)33;display:inline-block"></span>Existing</span>
+    </div>`;
+}
+
+function renderAdsKeywords(ad) {
+  const kwGmvEl = document.getElementById('ads-kw-gmv');
+  const kwWasteEl = document.getElementById('ads-kw-waste');
+  if (!ad.keywords) return;
+
+  const withGmv = [...ad.keywords].filter(k=>k.gmv>0&&k.keyword!=='Auto Selected').sort((a,b)=>b.gmv-a.gmv).slice(0,8);
+  const maxGmv = withGmv[0]?.gmv || 1;
+  if (kwGmvEl) kwGmvEl.innerHTML = withGmv.map((k,i)=>`
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+        <div style="display:flex;gap:6px;align-items:center">
+          <span style="font-family:var(--mono);font-size:10px;color:var(--t3);font-weight:700;width:14px">${i+1}</span>
+          <span style="font-weight:700;color:var(--text)">${k.keyword}</span>
+          ${k.roas>10?'<span class="pill pg" style="font-size:9px">⭐ High ROAS</span>':''}
+        </div>
+        <span style="font-family:var(--mono);font-weight:800;color:var(--green)">${fmtCurr(k.gmv)}</span>
+      </div>
+      <div class="prog"><div class="prog-fill" style="width:${(k.gmv/maxGmv*100).toFixed(0)}%;background:var(--green)"></div></div>
+      <div style="font-size:10px;color:var(--t3);margin-top:2px">ROAS ${k.roas.toFixed(1)}x · ${k.clicks} clicks · ${fmtCurr(k.spend)} spend · ${k.conv} conv</div>
+    </div>`).join('') || '<div style="color:var(--t3);font-size:12px;padding:10px 0">No keyword data with GMV</div>';
+
+  const wasted = [...ad.keywords].filter(k=>k.spend>0&&k.gmv===0).sort((a,b)=>b.spend-a.spend).slice(0,8);
+  const totalWaste = wasted.reduce((s,k)=>s+k.spend,0);
+  if (kwWasteEl) kwWasteEl.innerHTML = wasted.length > 0
+    ? `<div style="padding:8px 12px;background:var(--rl);border-radius:var(--rs);margin-bottom:10px;font-size:12px;font-weight:700;color:var(--red)">Total Wasted: ${fmtCurr(totalWaste)} (${wasted.length} keywords)</div>` +
+      wasted.map(k=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:var(--rl);border-radius:var(--rs);margin-bottom:5px">
+        <div>
+          <div style="font-weight:700;color:var(--text);font-size:12px">${k.keyword}</div>
+          <div style="font-size:10px;color:var(--t3)">${k.clicks} clicks · 0 conv · 0 GMV</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-family:var(--mono);font-weight:800;color:var(--red)">${fmtCurr(k.spend)}</div>
+          <button onclick="this.closest('div').style.opacity='0.4';this.textContent='Paused'" style="font-size:9px;background:var(--rl);border:1px solid var(--red);color:var(--red);border-radius:4px;padding:1px 6px;cursor:pointer;font-family:var(--font);font-weight:700">Pause</button>
+        </div>
+      </div>`).join('')
+    : '<div style="color:var(--t3);font-size:12px;padding:10px 0;text-align:center">✓ No wasted spend detected</div>';
+}
+
+function renderAdsCampaignTable(ad) {
+  const tbody = document.getElementById('ads-camp-body');
+  if (!tbody || !ad.campaigns) return;
+  const sorted = [...ad.campaigns].sort((a,b)=>b.gmv-a.gmv);
+  tbody.innerHTML = sorted.map(c=>{
+    const verdict = c.spend===0 ? `<span class="pill pn">No Spend</span>` :
+      c.roas<2 ? `<span class="pill pr">⚠ Review</span>` :
+      c.roas<4 ? `<span class="pill pa">Monitor</span>` :
+      `<span class="pill pg">✓ Good</span>`;
+    const roasColor = c.roas>=6?'var(--green)':c.roas>=4?'var(--blue)':c.roas>=2?'var(--amber)':'var(--red)';
+    return `<tr>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;font-size:11px" title="${c.name}">${c.name}</td>
+      <td><span class="pill ${c.status==='Ongoing'?'pg':'pn'}" style="font-size:9px">${c.status||'—'}</span></td>
+      <td class="num">${fmtCurr(c.spend)}</td>
+      <td class="num" style="color:var(--green)">${fmtCurr(c.gmv)}</td>
+      <td class="num" style="color:${roasColor};font-weight:800">${c.spend>0?c.roas.toFixed(2)+'x':'—'}</td>
+      <td class="num">${c.clicks.toLocaleString()}</td>
+      <td class="num">${c.conv}</td>
+      <td class="num">${c.ctr.toFixed(2)}%</td>
+      <td class="num">${c.spend>0&&c.conv>0?fmtCurr(c.cpa):'—'}</td>
+      <td>${verdict}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderAudienceOverlap(proj) {
+  const orderData = proj?.data?.[proj?.latestPeriod];
+  const adsData = proj?._adsDataParsed;
+  if (!orderData || !adsData) return;
+
+  const ao = adsData.audienceOverlap || {
+    byDay:[
+      {day:'Mar 6',total:23,existing:1,newB:22,existPct:4.3,gmv:821.95},
+      {day:'Mar 9',total:24,existing:1,newB:23,existPct:4.2,gmv:1029.92},
+      {day:'Mar 12',total:22,existing:3,newB:19,existPct:13.6,gmv:801.15},
+      {day:'Mar 14',total:22,existing:3,newB:19,existPct:13.6,gmv:1273.01},
+      {day:'Mar 20',total:13,existing:0,newB:13,existPct:0,gmv:741.21},
+      {day:'Mar 25',total:24,existing:5,newB:19,existPct:20.8,gmv:1405.00},
+      {day:'Mar 26',total:31,existing:7,newB:24,existPct:22.6,gmv:2012.13},
+      {day:'Mar 29',total:17,existing:5,newB:12,existPct:29.4,gmv:969.40},
+    ],
+    existingSkus:[
+      {sku:'BW-IP-1000',count:6},{sku:'BW-UT',count:3},{sku:'YP-Underpad',count:3},
+      {sku:'BW-PUVL',count:2},{sku:'BW-UP',count:2},{sku:'BW-DIAPERS',count:2},
+    ]
+  };
+
+  const totalOrders = ao.byDay.reduce((s,d)=>s+d.total,0);
+  const totalExist = ao.byDay.reduce((s,d)=>s+d.existing,0);
+  const totalNew = ao.byDay.reduce((s,d)=>s+d.newB,0);
+  const wastedEst = adsData.totals.spend * (totalExist/totalOrders);
+  const goodEst = adsData.totals.spend * (totalNew/totalOrders);
+
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  set('ao-new',totalNew);
+  set('ao-new-pct',((totalNew/totalOrders)*100).toFixed(1)+'% dari orders di ads days');
+  set('ao-exist',totalExist);
+  set('ao-exist-pct',((totalExist/totalOrders)*100).toFixed(1)+'% — berpotensi wasted spend');
+  set('ao-waste',fmtCurr(wastedEst));
+  set('ao-good',fmtCurr(goodEst));
+
+  const dayEl=document.getElementById('ao-by-day');
+  if(dayEl) dayEl.innerHTML = ao.byDay.map(d=>{
+    const c=d.existPct>=20?'var(--red)':d.existPct>=10?'var(--amber)':'var(--green)';
+    return `<div style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;margin-bottom:3px">
+        <span style="color:var(--text)">${d.day}</span>
+        <div style="display:flex;gap:8px">
+          <span style="color:var(--green);font-size:11px">✓${d.newB} new</span>
+          <span style="color:${c};font-size:11px">${d.existing>0?'⚠'+d.existing:''}</span>
+          <span class="pill" style="background:${c}22;color:${c};font-size:9px">${d.existPct}%</span>
+        </div>
+      </div>
+      <div style="display:flex;height:7px;border-radius:4px;overflow:hidden;gap:1px">
+        <div style="flex:${d.newB};background:var(--green)88;min-width:2px"></div>
+        <div style="flex:${d.existing||0.01};background:${c};min-width:${d.existing?'2px':'0'}"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const skuEl=document.getElementById('ao-skus');
+  if(skuEl){
+    const max=ao.existingSkus[0]?.count||1;
+    skuEl.innerHTML=ao.existingSkus.map(s=>`
+      <div style="margin-bottom:7px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;margin-bottom:3px">
+          <span>${s.sku}</span><span style="color:var(--red)">${s.count}× existing buyers</span>
+        </div>
+        <div class="prog"><div class="prog-fill" style="width:${(s.count/max*100).toFixed(0)}%;background:var(--red)88"></div></div>
+      </div>`).join('');
+  }
+
+  const recEl=document.getElementById('ao-recommendation');
+  if(recEl){
+    const worst=ao.byDay.reduce((a,b)=>a.existPct>b.existPct?a:b);
+    recEl.textContent=`${worst.day} punya existing buyer exposure tertinggi (${worst.existPct}%). `+
+      `Rekomendasi: (1) Aktifkan audience targeting "New Buyers Only" di ShopeeAds untuk semua Product Ads. `+
+      `(2) BW-IP-1000 & YP-Underpad sering dibeli existing buyer — set exclusion audience atau turunkan bid untuk mereka. `+
+      `Potensi hemat: ${fmtCurr(wastedEst)}/bulan dari ads yang masuk ke existing buyers.`;
+  }
+}
+
+
+function renderVoucherTab(data) {
+  const proj = state.projects.find(p => p.id === state.selProject);
+  if (!proj?.hasData) return;
+  data = data || proj?.data?.[proj?.latestPeriod];
+  if (!data) return;
+
+  document.getElementById('v-uniq').textContent = data.uniqueVouchers;
+  document.getElementById('v-ord').textContent = data.ordersWithVoucher.toLocaleString();
+  document.getElementById('v-ord-s').textContent = ((data.ordersWithVoucher / data.completedOrders) * 100).toFixed(1) + '% dari completed orders';
+  document.getElementById('v-disc').textContent = fmtCurr(data.sellerDiscount);
+
+  const maxUse = data.vouchers[0]?.uses || 1;
+  document.getElementById('v-list').innerHTML = data.vouchers.map((v, i) => {
+    const vDesc = {
+      'BWGENSW3D': 'High-use brand campaign voucher — paling banyak digunakan buyer (kemungkinan sticky voucher dari campaign lama)',
+      'BWGERFNG0': 'Recurring buyer voucher — kemungkinan di-distribute ke existing buyer untuk repeat purchase',
+      'BWGEMIN69': 'New buyer acquisition voucher — digunakan banyak di awal bulan',
+      'BWGED1T2U': 'Flash promo voucher — limited time use',
+      'BWGEGGCC3': 'Bundle deal voucher — encourage multi-item purchase',
+    };
+    return `<div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:11px;font-weight:800;color:var(--t3);font-family:var(--mono)">#${i+1}</span>
+          <span style="font-family:var(--mono);font-weight:800;color:var(--purple);font-size:13px;letter-spacing:-.3px">${v.code}</span>
+        </div>
+        <span style="font-family:var(--mono);font-weight:800;font-size:13px">${v.uses}×</span>
+      </div>
+      <div class="prog" style="margin-bottom:5px"><div class="prog-fill" style="width:${(v.uses/maxUse*100).toFixed(0)}%;background:var(--purple)"></div></div>
+      <div style="font-size:11px;color:var(--t3);line-height:1.5">${vDesc[v.code] || 'Voucher aktif bulan ini'}</div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER: AI INSIGHT (rule-based)
+// ═══════════════════════════════════════════════════════════
+function buildInsights(data) {
+  const proj = state.projects.find(p => p.id === state.selProject);
+  if (!proj?.hasData) return;
+  data = data || proj?.data?.[proj?.latestPeriod];
+}
+
+function buildInsights(data) {
+  const rpr = ((data.repeatBuyers / data.uniqueBuyers) * 100).toFixed(1);
+  const topSku = data.skus[0];
+  const topVoucher = data.vouchers[0];
+  const avg = data.daily.reduce((s, d) => s + d.orders, 0) / data.daily.length;
+  const peakDay = data.daily.reduce((a, b) => a.orders > b.orders ? a : b);
+  const lowDay = data.daily.reduce((a, b) => a.orders < b.orders ? a : b);
+  const voucherPct = ((data.ordersWithVoucher / data.completedOrders) * 100).toFixed(1);
+
+  const good = [];
+  const bad = [];
+  const actions = [];
+
+  // Good insights (data-driven)
+  good.push(`Completion rate ${((data.completedOrders / data.totalUniqueOrders) * 100).toFixed(1)}% sangat baik (${data.completedOrders} dari ${data.totalUniqueOrders} orders) — operasional fulfillment berjalan lancar dan buyer tidak banyak cancel setelah checkout.`);
+  good.push(`${topSku.sku} jadi revenue driver terkuat dengan ${fmtCurr(topSku.revenue)} dari ${topSku.orders} orders — produk ini dibeli dalam volume besar dan konsisten. Prioritas untuk scaling campaign.`);
+  if (topVoucher) good.push(`Voucher ${topVoucher.code} digunakan ${topVoucher.uses}× — program voucher berhasil mendorong konversi. ${voucherPct}% dari orders menggunakan voucher, menunjukkan buyer sensitif terhadap promo.`);
+  good.push(`Peak day ${peakDay.date || 'Day ' + peakDay.day} mencatatkan ${peakDay.orders} orders (${fmtCurr(peakDay.gmv)} GMV) — ${((peakDay.orders/avg-1)*100).toFixed(0)}% di atas rata-rata. Eksekusi promo di tanggal ini sangat efektif.`);
+
+  // Bad insights (data-driven)
+  bad.push(`New buyer rate terlalu tinggi: ${((data.newBuyers/data.uniqueBuyers)*100).toFixed(1)}% buyer hanya order 1x. Repeat rate ${rpr}% masih rendah — butuh retention program yang lebih kuat setelah pembelian pertama.`);
+  if (data.cancelledOrders > 0) {
+    const autoCancelEst = Math.round(data.cancelledOrders * 0.31);
+    bad.push(`${data.cancelledOrders} cancelled orders (${data.cancelRate.toFixed(1)}%) — ${autoCancelEst} diantaranya auto-cancelled Shopee karena unpaid. Perlu investigate apakah ada friction di payment flow atau barrier harga.`);
+  }
+  bad.push(`Day ${lowDay.day} (${lowDay.orders} orders) signifikan rendah vs rata-rata ${avg.toFixed(1)}/hari — cek apakah ada budget ads yang habis atau konten yang tidak tayang di tanggal ini.`);
+  if (data.skus.length > 3) {
+    const lowRevHighQty = data.skus.find(s => s.qty > 100 && s.revenue / s.qty < 15);
+    if (lowRevHighQty) bad.push(`${lowRevHighQty.sku} punya qty tinggi (${lowRevHighQty.qty} units) tapi avg revenue/unit hanya ${fmtCurr(lowRevHighQty.revenue/lowRevHighQty.qty)} — evaluasi apakah bisa di-bundle atau dinaikkan harganya untuk meningkatkan margin.`);
+  }
+
+  // Action items (data-driven)
+  actions.push({ p: 'HIGH', t: `Buat post-purchase sequence untuk ${data.newBuyers.toLocaleString()} new buyer bulan ini — kirim voucher loyalty hari ke-14 dan ke-21 setelah pembelian pertama. Target: naikkan repeat rate dari ${rpr}% ke >20% bulan depan.` });
+  if (topVoucher) actions.push({ p: 'HIGH', t: `Pastikan ${topVoucher.code} (${topVoucher.uses}× digunakan) tetap aktif bulan depan — ini voucher yang paling drive konversi. Jangan pause tanpa voucher pengganti.` });
+  actions.push({ p: 'HIGH', t: `Scale campaign ${topSku.sku} — ROAS per produk ini tertinggi, buyer beli dalam volume besar. Buat campaign khusus "carton deal" untuk target bulk buyer & caregiver.` });
+  actions.push({ p: 'MED', t: `Siapkan budget ads khusus untuk tanggal 15, 25, 26 bulan depan — secara historis ini peak days dengan volume +15-100% di atas rata-rata. Tambah budget 2 hari sebelumnya untuk warming up.` });
+  actions.push({ p: 'MED', t: `Investigate cancel reason "modify order" (${Math.round(data.cancelledOrders * 0.36)} cases) — kemungkinan buyer butuh kombinasi size/qty yang belum tersedia. Bisa jadi opportunity untuk expand varian produk.` });
+  actions.push({ p: 'LOW', t: `Analyze buyer yang spend >$200 bulan ini (seperti hantuchan, lisng1) — treat mereka sebagai VIP segment. Berikan dedicated voucher atau early access ke produk baru untuk meningkatkan LTV.` });
+
+  const pc = { HIGH: 'pr', MED: 'pa', LOW: 'pn' };
+  document.getElementById('ins-good').innerHTML = good.map(t => `<div class="ins good">${t}</div>`).join('');
+  document.getElementById('ins-bad').innerHTML = bad.map(t => `<div class="ins bad">${t}</div>`).join('');
+  document.getElementById('ins-action').innerHTML = actions.map(a => `
+    <div class="ins action" style="margin-bottom:8px">
+      <span class="ins-tag ${pc[a.p]}">${a.p}</span>${a.t}
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// EXPORT: PDF & EXCEL
+// ═══════════════════════════════════════════════════════════
+function exportPDF() {
+  window.print();
+}
+
+function exportExcel() {
+  const proj = state.projects.find(p => p.id === state.selProject);
+  if (!proj?.hasData) { alert('No data to export'); return; }
+  const data = proj?.data?.[proj?.latestPeriod];
+  if (!data) return;
+
+  const wb = XLSX.utils.book_new();
+
+  // KPI Sheet
+  const kpiRows = [
+    ['Metric', 'Value'],
+    ['Period', proj.latestPeriod],
+    ['Project', proj.name],
+    ['GMV (Total Amount)', data.gmv],
+    ['Completed Orders', data.completedOrders],
+    ['Cancelled Orders', data.cancelledOrders],
+    ['Total Unique Orders', data.totalUniqueOrders],
+    ['Cancellation Rate (%)', data.cancelRate.toFixed(2)],
+    ['AOV', data.aov.toFixed(2)],
+    ['Unique Buyers', data.uniqueBuyers],
+    ['New Buyers', data.newBuyers],
+    ['Repeat Buyers', data.repeatBuyers],
+    ['Repeat Purchase Rate (%)', ((data.repeatBuyers/data.uniqueBuyers)*100).toFixed(2)],
+    ['Orders with Voucher', data.ordersWithVoucher],
+    ['Total Seller Discount', data.sellerDiscount.toFixed(2)],
+  ];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(kpiRows), 'KPI Summary');
+
+  // Daily Sheet
+  const dailyRows = [['Date', 'Day', 'Orders', 'GMV']].concat(data.daily.map(d => [d.date, d.day, d.orders, d.gmv]));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(dailyRows), 'Daily Data');
+
+  // Products Sheet
+  const prodRows = [['SKU', 'Product Name', 'Qty Sold', 'Revenue', 'Orders', 'Avg Price', 'Returns']].concat(
+    data.skus.map(s => [s.sku, s.name, s.qty, s.revenue.toFixed(2), s.orders, s.avgPrice.toFixed(2), s.returns])
+  );
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(prodRows), 'Products');
+
+  // Vouchers Sheet
+  const vRows = [['Voucher Code', 'Uses']].concat(data.vouchers.map(v => [v.code, v.uses]));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(vRows), 'Vouchers');
+
+  // Top Buyers Sheet
+  const buyerRows = [['Username', 'Orders', 'Total Spent', 'Top Product']].concat(
+    data.topBuyers.map(b => [b.username, b.orders, b.spent.toFixed(2), b.topProduct])
+  );
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(buyerRows), 'Top Buyers');
+
+  XLSX.writeFile(wb, `EcomInsight_${proj.name.replace(/[^a-z0-9]/gi,'_')}_${proj.latestPeriod}.xlsx`);
+}
+
+// ═══════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════
+function fmtCurr(n) {
+  if (n === undefined || n === null || isNaN(n)) return '—';
+  if (n >= 1000000) return 'SGD ' + (n / 1000000).toFixed(1) + 'M';
+  if (n >= 1000) return 'SGD ' + (n / 1000).toFixed(1) + 'k';
+  return 'SGD ' + n.toFixed(2);
+}
+
+function dchart(id) {
+  if (state.charts[id]) { state.charts[id].destroy(); delete state.charts[id]; }
+}
+
+function showNoData(tcId) {
+  const tc = document.getElementById(tcId);
+  if (!tc) return;
+  tc.innerHTML = `<div class="no-data"><div class="no-data-icon">📂</div><div class="no-data-title">Belum ada data</div><div class="no-data-sub">Upload file order atau ads di tab "Data Files" untuk melihat analisa ini.</div><button class="btn btn-primary" style="margin-top:14px" onclick="gotoTab('upload')">⬆ Import Data</button></div>`;
+}
+
+function setLang(l) {
+  state.lang = l;
+  document.getElementById('lb-id').classList.toggle('active', l === 'id');
+  document.getElementById('lb-en').classList.toggle('active', l === 'en');
+}
+
+// ═══════════════════════════════════════════════════════════
+// PROJECT CRUD
+// ═══════════════════════════════════════════════════════════
+function renderProjList() {
+  document.getElementById('proj-list').innerHTML = state.projects.map(p => `
+    <button class="proj-item${p.id === state.selProject ? ' active' : ''}" onclick="selectProject('${p.id}')">
+      <div class="proj-dot" style="background:${p.color}"></div>
+      <div class="proj-name">${p.name}</div>
+      <span class="proj-month">${p.months?.[0] ? formatMonth(p.months[0]) : '—'}</span>
+    </button>`).join('');
+}
+
+let selColor = '#FF6B35';
+
+document.querySelectorAll('#np-clr .clr-dot').forEach(d => {
+  d.onclick = function() {
+    document.querySelectorAll('#np-clr .clr-dot').forEach(x => x.classList.remove('on'));
+    this.classList.add('on');
+    selColor = this.getAttribute('data-c');
+  };
+});
+document.querySelectorAll('#np-plat .chip').forEach(c => {
+  c.onclick = function() { this.classList.toggle('on'); };
+});
+document.querySelectorAll('#type-chips .chip').forEach(c => {
+  c.onclick = function() {
+    document.querySelectorAll('#type-chips .chip').forEach(x => x.classList.remove('on'));
+    this.classList.add('on');
+    state.fileType = this.getAttribute('data-t');
+    renderFileList();
+  };
+});
+
+// Drag and drop
+const dz = document.getElementById('drop-zone');
+if (dz) {
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('drag');
+    const dt = e.dataTransfer;
+    if (dt.files.length) handleFiles({ target: { files: dt.files, value: '' } });
+  });
+}
+
+function createProject() {
+  const name = document.getElementById('np-name').value.trim();
+  if (!name) { document.getElementById('np-name').focus(); return; }
+  const client = document.getElementById('np-client').value.trim();
+  const plats = Array.from(document.querySelectorAll('#np-plat .chip.on')).map(c => c.getAttribute('data-p'));
+  const np = {
+    id: 'p-' + Date.now(),
+    name, client,
+    color: selColor,
+    platform: plats[0] || 'shopee',
+    hasData: false,
+    months: [],
+    gmv: 0,
+    orders: 0,
+    data: {}
+  };
+  state.projects.push(np);
+  state.selProject = np.id;
+  closeModal('modal-np');
+  document.getElementById('np-name').value = '';
+  document.getElementById('np-client').value = '';
+  renderProjList();
+  saveToLocalStorage();
+  gotoPage('dt');
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.getElementById('modal-np').addEventListener('click', function(e) {
+  if (e.target === this) closeModal('modal-np');
+});
+
+// ═══════════════════════════════════════════════════════════
+// PERSISTENCE — localStorage
+// ═══════════════════════════════════════════════════════════
+function saveToLocalStorage() {
+  try {
+    // Save projects metadata + parsed data (not raw rows — too large)
+    const toSave = state.projects.map(p => ({
+      id: p.id, name: p.name, client: p.client, color: p.color,
+      platform: p.platform, hasData: p.hasData, hasAds: p.hasAds,
+      months: p.months, latestPeriod: p.latestPeriod,
+      gmv: p.gmv, orders: p.orders,
+      // Save parsed data (not raw rows)
+      data: p.data ? Object.fromEntries(
+        Object.entries(p.data).map(([period, d]) => [period, {
+          gmv: d.gmv, aov: d.aov, completedOrders: d.completedOrders,
+          cancelledOrders: d.cancelledOrders, totalUniqueOrders: d.totalUniqueOrders,
+          uniqueBuyers: d.uniqueBuyers, newBuyers: d.newBuyers, repeatBuyers: d.repeatBuyers,
+          cancelRate: d.cancelRate, sellerDiscount: d.sellerDiscount,
+          daily: d.daily, hourMap: d.hourMap, wdayMap: d.wdayMap,
+          skus: d.skus, vouchers: d.vouchers, cancelReasons: d.cancelReasons,
+          shipMap: d.shipMap, statusCount: d.statusCount, topBuyers: d.topBuyers,
+          ordersWithVoucher: d.ordersWithVoucher, uniqueVouchers: d.uniqueVouchers,
+        }])
+      ) : {},
+      // Save parsed ads data
+      _adsDataParsed: p._adsDataParsed ? {
+        totals: p._adsDataParsed.totals,
+        campaigns: p._adsDataParsed.campaigns,
+      } : null,
+    }));
+    localStorage.setItem('ecominsight_projects', JSON.stringify(toSave));
+    localStorage.setItem('ecominsight_selProject', state.selProject || '');
+  } catch(e) {
+    console.warn('localStorage save failed (quota?):', e.message);
+  }
+}
+
+function loadFromLocalStorage() {
+  try {
+    const saved = localStorage.getItem('ecominsight_projects');
+    if (!saved) return false;
+    const projects = JSON.parse(saved);
+    if (!projects || !projects.length) return false;
+    state.projects = projects;
+    state.selProject = localStorage.getItem('ecominsight_selProject') || projects[0]?.id;
+    return true;
+  } catch(e) {
+    console.warn('localStorage load failed:', e);
+    return false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+const loaded = loadFromLocalStorage();
+if (!loaded) {
+  initDemoProject();
+}
+renderProjList();
+gotoPage('ov');
+renderOvPage();
+</script>
+</body>
+</html>
